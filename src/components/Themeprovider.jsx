@@ -8,7 +8,6 @@ export function ThemeProvider({ children }) {
       attribute="class"
       defaultTheme="system"
       enableSystem
-      disableTransitionOnChange
     >
       {children}
     </NextThemesProvider>
