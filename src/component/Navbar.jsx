@@ -8,7 +8,6 @@ import { useTheme } from "next-themes";
 import DishDropLogo from "./Logo";
 
 
-// ── Icons (inline SVG, no extra deps) ─────────────────────────────────────────
 const SunIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
@@ -33,7 +32,6 @@ const CloseIcon = () => (
   </svg>
 );
 
-// ── Nav link helper ────────────────────────────────────────────────────────────
 function NavLink({ href, children, onClick }) {
   const pathname = usePathname();
   const active = pathname === href;
@@ -56,20 +54,38 @@ function NavLink({ href, children, onClick }) {
   );
 }
 
-// ── Public nav links ───────────────────────────────────────────────────────────
 const publicLinks = [
   { href: "/",               label: "Home" },
   { href: "/browse-recipes", label: "Browse Recipes" },
 ];
 
-// ── Navbar ─────────────────────────────────────────────────────────────────────
+// ── Theme toggle — separate component so only IT re-renders after mount ────────
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  return (
+    <button
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className="p-2 rounded-lg text-gray-600 dark:text-gray-400
+        hover:bg-[#FAECE7] dark:hover:bg-[#993C1D]/20
+        hover:text-[#D85A30] transition-colors duration-200 w-9 h-9 flex items-center justify-center"
+      aria-label="Toggle theme"
+    >
+      {/* fixed-size placeholder prevents layout shift; icon hidden until mounted */}
+      {mounted
+        ? (theme === "dark" ? <SunIcon /> : <MoonIcon />)
+        : <span className="w-5 h-5" />
+      }
+    </button>
+  );
+}
+
 export default function Navbar({ user = null }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled,   setScrolled]   = useState(false);
-  const { theme, setTheme }         = useTheme();
-  const [mounted, setMounted]       = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -91,39 +107,20 @@ export default function Navbar({ user = null }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
 
-            {/* Logo */}
             <Link href="/" className="flex-shrink-0">
               <DishDropLogo variant="navbar" />
-              
             </Link>
 
-            {/* Desktop links */}
             <nav className="hidden md:flex items-center gap-7">
               {publicLinks.map(l => (
                 <NavLink key={l.href} href={l.href}>{l.label}</NavLink>
               ))}
-              {user && (
-                <NavLink href="/dashboard">Dashboard</NavLink>
-              )}
+              {user && <NavLink href="/dashboard">Dashboard</NavLink>}
             </nav>
 
-            {/* Right actions */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
 
-              {/* Theme toggle */}
-              {mounted && (
-                <button
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="p-2 rounded-lg text-gray-600 dark:text-gray-400
-                    hover:bg-[#FAECE7] dark:hover:bg-[#993C1D]/20
-                    hover:text-[#D85A30] transition-colors duration-200"
-                  aria-label="Toggle theme"
-                >
-                  {theme === "dark" ? <SunIcon /> : <MoonIcon />}
-                </button>
-              )}
-
-              {/* Auth buttons */}
               {!user ? (
                 <div className="hidden md:flex items-center gap-2">
                   <Link
@@ -161,7 +158,6 @@ export default function Navbar({ user = null }) {
                 </div>
               )}
 
-              {/* Mobile hamburger */}
               <button
                 className="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300
                   hover:bg-[#FAECE7] dark:hover:bg-[#993C1D]/20 transition-colors"
@@ -175,7 +171,6 @@ export default function Navbar({ user = null }) {
         </div>
       </motion.header>
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -233,7 +228,6 @@ export default function Navbar({ user = null }) {
         )}
       </AnimatePresence>
 
-      {/* Spacer so content doesn't hide under fixed navbar */}
       <div className="h-16" />
     </>
   );
