@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Background rounded square -->
+  <rect width="32" height="32" rx="7" fill="#D85A30"/>
+
+  <!-- Fork (left side) -->
+  <line x1="10" y1="6" x2="10" y2="26" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <line x1="7"  y1="6" x2="7"  y2="13" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <line x1="13" y1="6" x2="13" y2="13" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <path d="M7 13 Q10 18 10 20" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <path d="M13 13 Q10 18 10 20" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Water drop (right side) -->
+  <path d="M22 6 Q28 14 28 19 Q28 25 22 26 Q16 25 16 19 Q16 14 22 6Z" fill="white"/>
+  <ellipse cx="22" cy="25" rx="5" ry="1.8" fill="#F09975" opacity="0.6"/>
+</svg>
