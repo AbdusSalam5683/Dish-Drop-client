@@ -1,6 +1,7 @@
-"use client";
+// dish-drop-client/src/components/ThemeProvider.jsx
+'use client';
 
-import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { ThemeProvider as NextThemesProvider } from 'next-themes';
 
 export function ThemeProvider({ children }) {
   return (
@@ -8,6 +9,7 @@ export function ThemeProvider({ children }) {
       attribute="class"
       defaultTheme="system"
       enableSystem
+      disableTransitionOnChange
     >
       {children}
     </NextThemesProvider>

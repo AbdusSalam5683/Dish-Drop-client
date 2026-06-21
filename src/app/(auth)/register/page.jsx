@@ -1,5 +1,6 @@
 "use client";
-
+import { useForm } from "react-hook-form";
+import axiosSecure from "@/lib/axios"; //  Axios instance
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
@@ -25,10 +26,9 @@ const EyeIcon = ({ open }) => open ? (
   </svg>
 );
 
-// ── Password strength ──────────────────────────────────────────────────────────
 function PasswordStrength({ password }) {
   const checks = [
-    { label: "6+ characters",       ok: password.length >= 6 },
+    { label: "6+ characters",      ok: password.length >= 6 },
     { label: "Uppercase letter",    ok: /[A-Z]/.test(password) },
     { label: "Lowercase letter",    ok: /[a-z]/.test(password) },
   ];
@@ -91,7 +91,6 @@ function InputField({ label, type = "text", value, onChange, placeholder, error,
   );
 }
 
-// ── Illustration ───────────────────────────────────────────────────────────────
 function AuthIllustration() {
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center p-10 overflow-hidden">
@@ -106,21 +105,15 @@ function AuthIllustration() {
         transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
         className="relative z-10 flex flex-col items-center text-center"
       >
-        {/* Chef hat SVG */}
         <motion.svg width="180" height="180" viewBox="0 0 180 180" fill="none"
           animate={{ rotate: [-2, 2, -2], y: [0, -6, 0] }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
-          {/* Hat base band */}
           <rect x="30" y="130" width="120" height="22" rx="4" fill="#993C1D"/>
-          {/* Hat body */}
           <path d="M50 130 Q50 60 90 55 Q130 60 130 130Z" fill="white" opacity="0.9"/>
-          {/* Puff on top */}
           <circle cx="90" cy="55" r="28" fill="white" opacity="0.9"/>
           <circle cx="65" cy="75" r="22" fill="white" opacity="0.85"/>
           <circle cx="115" cy="75" r="22" fill="white" opacity="0.85"/>
-          {/* Band details */}
           <rect x="30" y="130" width="120" height="4" rx="2" fill="#D85A30" opacity="0.6"/>
-          {/* Stars */}
           {[[60, 145], [90, 148], [120, 145]].map(([x, y], i) => (
             <motion.text key={i} x={x} y={y} textAnchor="middle" fontSize="10"
               animate={{ opacity: [0.5, 1, 0.5] }}
@@ -139,7 +132,6 @@ function AuthIllustration() {
           Share your cooking recipes and reach thousands of food lovers.
         </motion.p>
 
-        {/* Feature list */}
         <motion.ul className="mt-6 space-y-2 text-left w-full max-w-xs"
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
           {[
@@ -159,9 +151,8 @@ function AuthIllustration() {
   );
 }
 
-// ── Register Page ──────────────────────────────────────────────────────────────
 export default function RegisterPage() {
-  const [form, setForm]       = useState({ name: "", email: "", imageUrl: "", password: "", confirm: "" });
+  const [form, setForm]        = useState({ name: "", email: "", imageUrl: "", password: "", confirm: "" });
   const [showPass, setShowPass]     = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading]       = useState(false);
@@ -174,10 +165,10 @@ export default function RegisterPage() {
 
   const validate = () => {
     const e = {};
-    if (!form.name)                             e.name     = "Name is required";
-    if (!form.email)                            e.email    = "Email is required";
+    if (!form.name)                      e.name     = "Name is required";
+    if (!form.email)                    e.email    = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email    = "Please enter a valid email";
-    if (!form.password)                         e.password = "Password is required";
+    if (!form.password)                  e.password = "Password is required";
     else if (form.password.length < 6)          e.password = "Minimum 6 characters";
     else if (!/[A-Z]/.test(form.password))      e.password = "Requires an uppercase letter";
     else if (!/[a-z]/.test(form.password))      e.password = "Requires a lowercase letter";
@@ -196,12 +187,10 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left — illustration */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#993C1D] via-[#D85A30] to-[#F09975]">
         <AuthIllustration />
       </div>
 
-      {/* Right — form */}
       <div className="flex-1 flex items-center justify-center px-6 py-10
         bg-[#FAECE7]/30 dark:bg-gray-950 overflow-y-auto">
         <motion.div
@@ -210,7 +199,6 @@ export default function RegisterPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.55, ease: [0.22, 0.61, 0.36, 1] }}
         >
-          {/* Logo */}
           <div className="mb-6">
             <DishDropLogo variant="navbar" />
             <h1 className="mt-5 text-2xl font-bold text-gray-800 dark:text-gray-100">
@@ -224,7 +212,6 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* Google */}
           <button
             onClick={() => { /* TODO: better-auth Google signUp */ }}
             className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl
@@ -238,14 +225,12 @@ export default function RegisterPage() {
             Continue with Google
           </button>
 
-          {/* Divider */}
           <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
             <span className="text-xs text-gray-400">or fill out the form</span>
             <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <InputField label="Full Name" value={form.name} onChange={set("name")}
               placeholder="Your full name" error={errors.name} />

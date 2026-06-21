@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
+import { useAuth } from "@/context/AuthContext";
 import DishDropLogo from "@/components/Logo";
 
 // ── Google Icon ────────────────────────────────────────────────────────────────
@@ -15,6 +17,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
+// ── Eye Icon ──────────────────────────────────────────────────────────────────
 const EyeIcon = ({ open }) => open ? (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -26,15 +29,21 @@ const EyeIcon = ({ open }) => open ? (
   </svg>
 );
 
-// ── Illustration (left panel) ──────────────────────────────────────────────────
+// ── Illustration Component (Left Panel) ──────────────────────────────────────
 function AuthIllustration() {
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center p-10 overflow-hidden">
-      {/* Blobs */}
-      <motion.div className="absolute w-72 h-72 rounded-full bg-[#F09975] opacity-20 -top-16 -left-16"
-        animate={{ y: [0, 18, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} />
-      <motion.div className="absolute w-48 h-48 rounded-full bg-[#F5C4B3] opacity-25 -bottom-10 -right-10"
-        animate={{ y: [0, -14, 0] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} />
+      {/* Background blobs */}
+      <motion.div 
+        className="absolute w-72 h-72 rounded-full bg-[#F09975] opacity-20 -top-16 -left-16"
+        animate={{ y: [0, 18, 0] }} 
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} 
+      />
+      <motion.div 
+        className="absolute w-48 h-48 rounded-full bg-[#F5C4B3] opacity-25 -bottom-10 -right-10"
+        animate={{ y: [0, -14, 0] }} 
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} 
+      />
 
       {/* Central illustration */}
       <motion.div
@@ -43,10 +52,12 @@ function AuthIllustration() {
         transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
         className="relative z-10 flex flex-col items-center text-center"
       >
-        {/* Big plate SVG */}
-        <motion.svg width="200" height="200" viewBox="0 0 200 200" fill="none"
+        {/* Plate SVG with food illustration */}
+        <motion.svg 
+          width="200" height="200" viewBox="0 0 200 200" fill="none"
           animate={{ rotate: [-2, 2, -2], y: [0, -8, 0] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        >
           <ellipse cx="100" cy="170" rx="75" ry="14" fill="#F5C4B3" opacity="0.5"/>
           <ellipse cx="100" cy="155" rx="70" ry="18" fill="#D85A30"/>
           <ellipse cx="100" cy="150" rx="58" ry="14" fill="#993C1D"/>
@@ -64,31 +75,41 @@ function AuthIllustration() {
           <path d="M162 70 Q175 85 162 105" fill="#D85A30" opacity="0.6"/>
           {/* Steam */}
           {[85, 100, 115].map((x, i) => (
-            <motion.path key={x} d={`M${x} 100 Q${x - 5} 82 ${x} 65`} fill="none"
+            <motion.path 
+              key={x} 
+              d={`M${x} 100 Q${x - 5} 82 ${x} 65`} 
+              fill="none"
               stroke="#993C1D" strokeWidth="2.5" strokeLinecap="round"
               animate={{ opacity: [0, 0.6, 0], y: [0, -12] }}
-              transition={{ duration: 2, delay: i * 0.4, repeat: Infinity, ease: "easeInOut" }} />
+              transition={{ duration: 2, delay: i * 0.4, repeat: Infinity, ease: "easeInOut" }} 
+            />
           ))}
         </motion.svg>
 
         <motion.h2
           className="text-2xl font-bold text-white mt-4 mb-2"
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}>
+          initial={{ opacity: 0, y: 10 }} 
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
           Welcome Back! 🍽️
         </motion.h2>
         <motion.p
           className="text-[#F5C4B3] text-sm leading-relaxed max-w-xs"
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}>
+          initial={{ opacity: 0, y: 10 }} 
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+        >
           Share your favorite recipes and discover the world's best cuisines.
         </motion.p>
 
         {/* Stats */}
         <motion.div
           className="flex gap-8 mt-8"
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}>
+          initial={{ opacity: 0, y: 10 }} 
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
           {[["1000+", "Recipes"], ["500+", "Chefs"], ["50+", "Cuisines"]].map(([num, label]) => (
             <div key={label} className="text-center">
               <div className="text-xl font-bold text-white">{num}</div>
@@ -101,7 +122,7 @@ function AuthIllustration() {
   );
 }
 
-// ── Input Field ────────────────────────────────────────────────────────────────
+// ── Input Field Component ─────────────────────────────────────────────────────
 function InputField({ label, type = "text", value, onChange, placeholder, error, rightEl }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -132,39 +153,57 @@ function InputField({ label, type = "text", value, onChange, placeholder, error,
   );
 }
 
-// ── Login Page ─────────────────────────────────────────────────────────────────
+// ── Login Page Component ──────────────────────────────────────────────────────
 export default function LoginPage() {
-  const [email,       setEmail]       = useState("");
-  const [password,    setPassword]    = useState("");
-  const [showPass,    setShowPass]    = useState(false);
-  const [loading,     setLoading]     = useState(false);
-  const [errors,      setErrors]      = useState({});
+  const router = useRouter();
+  const { login } = useAuth();
+  
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
+  // Form validation
   const validate = () => {
     const e = {};
-    if (!email)                          e.email    = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email   = "Please enter a valid email";
-    if (!password)                       e.password = "Password is required";
+    if (!email) e.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(email)) e.email = "Please enter a valid email";
+    if (!password) e.password = "Password is required";
     return e;
   };
 
+  // Handle form submission
   const handleSubmit = async (ev) => {
     ev.preventDefault();
     const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
+    if (Object.keys(e).length) { 
+      setErrors(e); 
+      return; 
+    }
+    
     setLoading(true);
-    // TODO: better-auth signIn
-    setTimeout(() => setLoading(false), 1500);
+    setErrors({});
+    
+    const result = await login({ email, password });
+    
+    if (result.success) {
+      router.push('/dashboard');
+    } else {
+      setErrors({ general: result.message });
+    }
+    
+    setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex">
-      {/* Left — illustration */}
+      {/* Left Panel - Illustration */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#993C1D] via-[#D85A30] to-[#F09975]">
         <AuthIllustration />
       </div>
 
-      {/* Right — form */}
+      {/* Right Panel - Login Form */}
       <div className="flex-1 flex items-center justify-center px-6 py-12
         bg-[#FAECE7]/30 dark:bg-gray-950">
         <motion.div
@@ -173,23 +212,30 @@ export default function LoginPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.55, ease: [0.22, 0.61, 0.36, 1] }}
         >
-          {/* Logo */}
+          {/* Brand / Logo */}
           <div className="mb-8">
             <DishDropLogo variant="navbar" />
             <h1 className="mt-5 text-2xl font-bold text-gray-800 dark:text-gray-100">
-              Log In
+              Sign In
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Don't have an account?{" "}
               <Link href="/register" className="text-[#D85A30] hover:text-[#993C1D] font-medium transition-colors">
-                Sign Up
+                Create one
               </Link>
             </p>
           </div>
 
-          {/* Google button */}
+          {/* General Error Message */}
+          {errors.general && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
+              {errors.general}
+            </div>
+          )}
+
+          {/* Google Login Button */}
           <button
-            onClick={() => { /* TODO: better-auth Google signIn */ }}
+            onClick={() => { /* TODO: Implement Google OAuth */ }}
             className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl
               border border-gray-200 dark:border-gray-700
               bg-white dark:bg-gray-900
@@ -204,38 +250,52 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-            <span className="text-xs text-gray-400">or with email</span>
+            <span className="text-xs text-gray-400">or sign in with email</span>
             <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
           </div>
 
-          {/* Form */}
+          {/* Login Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <InputField
-              label="Email"
+              label="Email Address"
               type="email"
               value={email}
-              onChange={e => { setEmail(e.target.value); setErrors(p => ({...p, email: ""})); }}
+              onChange={e => { 
+                setEmail(e.target.value); 
+                setErrors(p => ({...p, email: ""})); 
+              }}
               placeholder="your@email.com"
               error={errors.email}
             />
+            
             <InputField
               label="Password"
               type={showPass ? "text" : "password"}
               value={password}
-              onChange={e => { setPassword(e.target.value); setErrors(p => ({...p, password: ""})); }}
+              onChange={e => { 
+                setPassword(e.target.value); 
+                setErrors(p => ({...p, password: ""})); 
+              }}
               placeholder="••••••••"
               error={errors.password}
               rightEl={
-                <button type="button" onClick={() => setShowPass(v => !v)}
-                  className="text-gray-400 hover:text-[#D85A30] transition-colors">
+                <button 
+                  type="button" 
+                  onClick={() => setShowPass(v => !v)}
+                  className="text-gray-400 hover:text-[#D85A30] transition-colors"
+                >
                   <EyeIcon open={showPass} />
                 </button>
               }
             />
 
+            {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 accent-[#D85A30]" />
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 rounded border-gray-300 accent-[#D85A30]" 
+                />
                 <span className="text-sm text-gray-600 dark:text-gray-400">Remember me</span>
               </label>
               <Link href="/forgot-password"
@@ -244,6 +304,7 @@ export default function LoginPage() {
               </Link>
             </div>
 
+            {/* Submit Button */}
             <motion.button
               type="submit"
               disabled={loading}
@@ -258,9 +319,9 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                   </svg>
-                  Logging in...
+                  Signing in...
                 </span>
-              ) : "Log In"}
+              ) : "Sign In"}
             </motion.button>
           </form>
         </motion.div>
