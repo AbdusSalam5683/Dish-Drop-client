@@ -36,4 +36,20 @@ api.interceptors.response.use(
   }
 );
 
+// ==================== AUTH API ====================
+export const authAPI = {
+  register: (data) => api.post('/auth/register', data),
+  login: (data) => api.post('/auth/login', data),
+  logout: () => api.post('/auth/logout'),
+  getMe: () => api.get('/auth/me'),
+};
+
+// ==================== RECIPE API ====================
+export const recipeAPI = {
+  getAll: (params) => api.get('/recipes', { params }),
+  getFeatured: () => api.get('/recipes/featured'),
+  getPopular: () => api.get('/recipes/popular'),
+  getById: (id) => api.get(`/recipes/${id}`),
+};
+
 export default api;

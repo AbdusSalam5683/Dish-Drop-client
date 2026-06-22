@@ -1,38 +1,52 @@
 // dish-drop-client/src/components/home/FeaturedRecipes.jsx
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import Image from 'next/image';
-
-const mockFeaturedRecipes = [
-  {
-    id: '1',
-    name: 'Classic Beef Burger',
-    category: 'Lunch',
-    cuisine: 'American',
-    preparationTime: '30 min',
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400',
-  },
-  {
-    id: '2',
-    name: 'Chicken Biryani',
-    category: 'Dinner',
-    cuisine: 'Indian',
-    preparationTime: '45 min',
-    image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400',
-  },
-  {
-    id: '3',
-    name: 'Italian Pizza',
-    category: 'Dinner',
-    cuisine: 'Italian',
-    preparationTime: '25 min',
-    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400',
-  },
-];
+import { recipeAPI } from '@/lib/api';
 
 export default function FeaturedRecipes() {
+  const [recipes, setRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        const response = await recipeAPI.getFeatured();
+        setRecipes(response.data.recipes);
+      } catch (error) {
+        console.error('Error fetching featured recipes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeatured();
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="py-16 bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white">Featured Recipes</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-gray-200 dark:bg-gray-800 rounded-xl h-72 animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (recipes.length === 0) {
+    return null;
+  }
+
   return (
     <section className="py-16 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,9 +66,9 @@ export default function FeaturedRecipes() {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {mockFeaturedRecipes.map((recipe, index) => (
+          {recipes.map((recipe, index) => (
             <motion.div
-              key={recipe.id}
+              key={recipe._id}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -63,8 +77,8 @@ export default function FeaturedRecipes() {
             >
               <div className="relative w-full h-48">
                 <Image
-                  src={recipe.image}
-                  alt={recipe.name}
+                  src={recipe.recipeImage}
+                  alt={recipe.recipeName}
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -80,18 +94,18 @@ export default function FeaturedRecipes() {
                     {recipe.category}
                   </span>
                   <span className="px-2 py-1 text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
-                    {recipe.cuisine}
+                    {recipe.cuisineType}
                   </span>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
-                  {recipe.name}
+                  {recipe.recipeName}
                 </h3>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-500 dark:text-gray-400">
                     ⏱ {recipe.preparationTime}
                   </span>
                   <Link
-                    href={`/recipe/${recipe.id}`}
+                    href={`/recipe/${recipe._id}`}
                     className="text-[#D85A30] hover:text-[#993C1D] font-medium text-sm"
                   >
                     View Details →
