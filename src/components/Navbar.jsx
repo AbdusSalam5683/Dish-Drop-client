@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { useTheme } from "next-themes";
+import { useAuth } from "@/context/AuthContext";
 import DishDropLogo from "./Logo";
+import toast from "react-hot-toast";
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 const SunIcon = () => (
@@ -77,13 +79,9 @@ function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Special case for fixing hydration mismatch
-    // This only runs once and doesn't cause cascading renders
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
-  // Return placeholder during SSR to prevent hydration mismatch
   if (!mounted) {
     return (
       <button
@@ -111,7 +109,9 @@ function ThemeToggle() {
 }
 
 // ── Main Navbar Component ────────────────────────────────────────────────────
-export default function Navbar({ user = null }) {
+export default function Navbar() {
+  const router = useRouter();
+  const { user, logout, isAuthenticated } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -121,6 +121,13 @@ export default function Navbar({ user = null }) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Handle logout
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+    toast.success('Logged out successfully');
+  };
 
   return (
     <>
@@ -150,7 +157,7 @@ export default function Navbar({ user = null }) {
                   {link.label}
                 </NavLink>
               ))}
-              {user && <NavLink href="/dashboard">Dashboard</NavLink>}
+              {isAuthenticated && <NavLink href="/dashboard">Dashboard</NavLink>}
             </nav>
 
             {/* ── Right Side Actions ── */}
@@ -158,7 +165,7 @@ export default function Navbar({ user = null }) {
               <ThemeToggle />
 
               {/* ── Desktop Auth Buttons ── */}
-              {!user ? (
+              {!isAuthenticated ? (
                 <div className="hidden md:flex items-center gap-2">
                   <Link
                     href="/login"
@@ -177,26 +184,32 @@ export default function Navbar({ user = null }) {
                 </div>
               ) : (
                 <div className="hidden md:flex items-center gap-3">
+                  {/* ── Premium Badge ── */}
+                  {user?.isPremium && (
+                    <span className="px-2 py-0.5 text-xs font-semibold text-yellow-700 bg-yellow-100 rounded-full">
+                      ⭐ Premium
+                    </span>
+                  )}
+                  
                   {/* ── User Avatar ── */}
                   <Link href="/dashboard/profile" className="relative w-9 h-9">
-                    <Image
-                      src={user.image || "/default-avatar.png"}
-                      alt={user.name || "User avatar"}
-                      width={36}
-                      height={36}
-                      className="rounded-full object-cover ring-2 ring-[#D85A30]/40
-                        hover:ring-[#D85A30] transition-all duration-200"
-                    />
+                
+<Image
+  src={user?.image || "/default-avatar.png"}
+  alt={user?.name || "User avatar"}
+  width={36}
+  height={36}
+  unoptimized={true} 
+  className="rounded-full object-cover ring-2 ring-[#D85A30]/40
+    hover:ring-[#D85A30] transition-all duration-200"
+/>
                   </Link>
                   
                   {/* ── Sign Out Button ── */}
                   <button
                     className="px-4 py-1.5 text-sm font-semibold text-white bg-[#D85A30]
                       rounded-lg hover:bg-[#993C1D] transition-colors duration-200"
-                    onClick={() => {
-                      // TODO: Implement signOut() functionality
-                      console.log("Sign out clicked");
-                    }}
+                    onClick={handleLogout}
                   >
                     Sign Out
                   </button>
@@ -240,7 +253,7 @@ export default function Navbar({ user = null }) {
                   {link.label}
                 </NavLink>
               ))}
-              {user && (
+              {isAuthenticated && (
                 <NavLink
                   href="/dashboard"
                   onClick={() => setMobileOpen(false)}
@@ -251,7 +264,7 @@ export default function Navbar({ user = null }) {
 
               {/* ── Mobile Auth Buttons ── */}
               <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-2">
-                {!user ? (
+                {!isAuthenticated ? (
                   <>
                     <Link
                       href="/login"
@@ -271,17 +284,23 @@ export default function Navbar({ user = null }) {
                     </Link>
                   </>
                 ) : (
-                  <button
-                    className="w-full px-4 py-2 text-sm font-semibold text-white
-                      bg-[#D85A30] rounded-lg hover:bg-[#993C1D] transition-colors"
-                    onClick={() => {
-                      setMobileOpen(false);
-                      // TODO: Implement signOut() functionality
-                      console.log("Sign out clicked");
-                    }}
-                  >
-                    Sign Out
-                  </button>
+                  <>
+                    {user?.isPremium && (
+                      <span className="text-center text-xs font-semibold text-yellow-700 bg-yellow-100 rounded-lg px-3 py-1">
+                        ⭐ Premium Member
+                      </span>
+                    )}
+                    <button
+                      className="w-full px-4 py-2 text-sm font-semibold text-white
+                        bg-[#D85A30] rounded-lg hover:bg-[#993C1D] transition-colors"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        handleLogout();
+                      }}
+                    >
+                      Sign Out
+                    </button>
+                  </>
                 )}
               </div>
             </nav>
