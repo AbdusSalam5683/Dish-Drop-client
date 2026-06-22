@@ -3,28 +3,20 @@
 
 import { motion } from 'motion/react';
 import Banner from '@/components/home/Banner';
+import StatsSection from '@/components/home/StatsSection';
 import FeaturedRecipes from '@/components/home/FeaturedRecipes';
 import PopularRecipes from '@/components/home/PopularRecipes';
-import StatsSection from '@/components/home/StatsSection';
 import NewsletterSection from '@/components/home/NewsletterSection';
+
 
 export default function HomePage() {
   return (
-    <main>
-      {/* Banner Section */}
+    <main className="min-h-screen">
       <Banner />
-      
-      {/* Stats Section */}
       <StatsSection />
-      
-      {/* Featured Recipes */}
       <FeaturedRecipes />
-      
-      {/* Popular Recipes */}
       <PopularRecipes />
-      
-      {/* Newsletter Section */}
-      <NewsletterSection />
+      <NewsletterSection /> 
     </main>
   );
 }

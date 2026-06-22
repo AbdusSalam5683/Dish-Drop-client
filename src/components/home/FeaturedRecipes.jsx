@@ -3,8 +3,8 @@
 
 import { motion } from 'motion/react';
 import Link from 'next/link';
+import Image from 'next/image';
 
-// Temporary mock data - will be replaced with API data
 const mockFeaturedRecipes = [
   {
     id: '1',
@@ -61,11 +61,19 @@ export default function FeaturedRecipes() {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
             >
-              <img
-                src={recipe.image}
-                alt={recipe.name}
-                className="w-full h-48 object-cover"
-              />
+              <div className="relative w-full h-48">
+                <Image
+                  src={recipe.image}
+                  alt={recipe.name}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  priority={index === 0}
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/400x300/D85A30/FFFFFF?text=Recipe';
+                  }}
+                />
+              </div>
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="px-2 py-1 text-xs font-semibold bg-[#D85A30]/10 text-[#D85A30] rounded-full">

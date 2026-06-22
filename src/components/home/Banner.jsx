@@ -7,7 +7,7 @@ import { TypeAnimation } from 'react-type-animation';
 
 export default function Banner() {
   return (
-    <section className="relative min-h-[80vh] flex items-center overflow-hidden bg-gradient-to-br from-[#993C1D] via-[#D85A30] to-[#F09975]">
+    <section className="relative min-h-[80vh] flex items-center overflow-hidden bg-linear-to-br from-[#993C1D] via-[#D85A30] to-[#F09975]">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-white/20 blur-3xl" />
