@@ -56,6 +56,8 @@ export default function ProfilePage() {
                 width={80}
                 height={80}
                 className="object-cover"
+                unoptimized={true}
+                priority={false} 
               />
             ) : (
               user?.name?.[0] || '👤'
