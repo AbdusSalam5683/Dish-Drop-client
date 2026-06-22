@@ -5,43 +5,10 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, useInView } from 'motion/react';
 import Link from 'next/link';
 import Image from 'next/image';
-
-const mockPopularRecipes = [
-  {
-    id: '1',
-    name: 'Spaghetti Carbonara',
-    likesCount: 156,
-    authorName: 'Chef Maria',
-    image: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=400',
-    category: 'Dinner'
-  },
-  {
-    id: '2',
-    name: 'Chocolate Lava Cake',
-    likesCount: 142,
-    authorName: 'Chef James',
-    image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=400',
-    category: 'Dessert'
-  },
-  {
-    id: '3',
-    name: 'Grilled Salmon',
-    likesCount: 128,
-    authorName: 'Chef Sarah',
-    image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400',
-    category: 'Dinner'
-  },
-  {
-    id: '4',
-    name: 'Greek Salad',
-    likesCount: 98,
-    authorName: 'Chef Alex',
-    image: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400',
-    category: 'Lunch'
-  }
-];
+import { recipeAPI } from '@/lib/api';
 
 export default function PopularRecipes() {
+  const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const ref = useRef(null);
   const isInView = useInView(ref, { 
@@ -51,9 +18,18 @@ export default function PopularRecipes() {
   });
 
   useEffect(() => {
-    setTimeout(() => {
-      setLoading(false);
-    }, 500);
+    const fetchPopular = async () => {
+      try {
+        const response = await recipeAPI.getPopular();
+        setRecipes(response.data.recipes);
+      } catch (error) {
+        console.error('Error fetching popular recipes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPopular();
   }, []);
 
   if (loading) {
@@ -71,6 +47,10 @@ export default function PopularRecipes() {
         </div>
       </section>
     );
+  }
+
+  if (recipes.length === 0) {
+    return null;
   }
 
   return (
@@ -91,9 +71,9 @@ export default function PopularRecipes() {
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {mockPopularRecipes.map((recipe, index) => (
+          {recipes.map((recipe, index) => (
             <motion.div
-              key={recipe.id}
+              key={recipe._id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -101,8 +81,8 @@ export default function PopularRecipes() {
             >
               <div className="relative h-48 w-full bg-gray-200 dark:bg-gray-700">
                 <Image
-                  src={recipe.image}
-                  alt={recipe.name}
+                  src={recipe.recipeImage}
+                  alt={recipe.recipeName}
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-500"
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
@@ -116,7 +96,7 @@ export default function PopularRecipes() {
               </div>
               <div className="p-4">
                 <h3 className="font-semibold text-gray-800 dark:text-white text-lg mb-1">
-                  {recipe.name}
+                  {recipe.recipeName}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
                   by {recipe.authorName}
@@ -128,7 +108,7 @@ export default function PopularRecipes() {
                     <span className="text-gray-400 text-sm">likes</span>
                   </div>
                   <Link
-                    href={`/recipe/${recipe.id}`}
+                    href={`/recipe/${recipe._id}`}
                     className="text-[#D85A30] hover:text-[#993C1D] font-medium text-sm transition-colors"
                   >
                     View →
