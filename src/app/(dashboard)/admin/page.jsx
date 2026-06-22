@@ -2,14 +2,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAdminGuard } from '@/middleware/adminGuard';
+import { useAuth } from '@/context/AuthContext';
 import { motion } from 'motion/react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
 export default function AdminOverview() {
-  const { user, loading: authLoading } = useAdminGuard();
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalRecipes: 0,
@@ -31,19 +31,8 @@ export default function AdminOverview() {
       }
     };
 
-    if (user?.role === 'admin') {
-      fetchStats();
-    }
-  }, [user]);
-
-  if (authLoading || loading) {
-    return (
-      <div className="text-center py-12">
-        <div className="w-12 h-12 border-4 border-[#D85A30] border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="mt-4 text-gray-600 dark:text-gray-400">Loading admin dashboard...</p>
-      </div>
-    );
-  }
+    fetchStats();
+  }, []);
 
   const statCards = [
     {
@@ -75,6 +64,15 @@ export default function AdminOverview() {
       link: '/admin/reports'
     }
   ];
+
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-12 h-12 border-4 border-[#D85A30] border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="mt-4 text-gray-600 dark:text-gray-400">Loading admin dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div>

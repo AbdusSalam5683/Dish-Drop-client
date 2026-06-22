@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { useAuth } from "@/context/AuthContext";
 import DishDropLogo from "@/components/Logo";
+import toast from "react-hot-toast";
 
 // ── Google Icon ────────────────────────────────────────────────────────────────
 const GoogleIcon = () => (
@@ -156,7 +157,7 @@ function InputField({ label, type = "text", value, onChange, placeholder, error,
 // ── Login Page Component ──────────────────────────────────────────────────────
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -171,6 +172,16 @@ export default function LoginPage() {
     else if (!/\S+@\S+\.\S+/.test(email)) e.email = "Please enter a valid email";
     if (!password) e.password = "Password is required";
     return e;
+  };
+
+  // Handle Google Login
+  const handleGoogleLogin = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      console.error('Google login error:', error);
+      toast.error('Failed to login with Google');
+    }
   };
 
   // Handle form submission
@@ -235,7 +246,7 @@ export default function LoginPage() {
 
           {/* Google Login Button */}
           <button
-            onClick={() => { /* TODO: Implement Google OAuth */ }}
+            onClick={handleGoogleLogin}
             className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl
               border border-gray-200 dark:border-gray-700
               bg-white dark:bg-gray-900

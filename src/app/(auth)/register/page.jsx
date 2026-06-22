@@ -1,10 +1,14 @@
 "use client";
+
 import { useForm } from "react-hook-form";
-import axiosSecure from "@/lib/axios"; //  Axios instance
+import axiosSecure from "@/lib/axios";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
+import { useAuth } from "@/context/AuthContext";
 import DishDropLogo from "@/components/Logo";
+import toast from "react-hot-toast";
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -34,7 +38,6 @@ function PasswordStrength({ password }) {
   ];
   const score = checks.filter(c => c.ok).length;
   const colors = ["bg-red-400", "bg-yellow-400", "bg-green-500"];
-  const labels = ["Weak", "Medium", "Strong"];
 
   if (!password) return null;
 
@@ -152,11 +155,19 @@ function AuthIllustration() {
 }
 
 export default function RegisterPage() {
-  const [form, setForm]        = useState({ name: "", email: "", imageUrl: "", password: "", confirm: "" });
-  const [showPass, setShowPass]     = useState(false);
+  const router = useRouter();
+  const { register: registerUser, loginWithGoogle } = useAuth();
+  const [form, setForm] = useState({ 
+    name: "", 
+    email: "", 
+    imageUrl: "", 
+    password: "", 
+    confirm: "" 
+  });
+  const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [loading, setLoading]       = useState(false);
-  const [errors, setErrors]         = useState({});
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const set = (key) => (e) => {
     setForm(p => ({ ...p, [key]: e.target.value }));
@@ -165,24 +176,51 @@ export default function RegisterPage() {
 
   const validate = () => {
     const e = {};
-    if (!form.name)                      e.name     = "Name is required";
-    if (!form.email)                    e.email    = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email    = "Please enter a valid email";
-    if (!form.password)                  e.password = "Password is required";
-    else if (form.password.length < 6)          e.password = "Minimum 6 characters";
-    else if (!/[A-Z]/.test(form.password))      e.password = "Requires an uppercase letter";
-    else if (!/[a-z]/.test(form.password))      e.password = "Requires a lowercase letter";
-    if (form.confirm !== form.password)         e.confirm  = "Passwords do not match";
+    if (!form.name) e.name = "Name is required";
+    if (!form.email) e.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Please enter a valid email";
+    if (!form.password) e.password = "Password is required";
+    else if (form.password.length < 6) e.password = "Minimum 6 characters";
+    else if (!/[A-Z]/.test(form.password)) e.password = "Requires an uppercase letter";
+    else if (!/[a-z]/.test(form.password)) e.password = "Requires a lowercase letter";
+    if (form.confirm !== form.password) e.confirm = "Passwords do not match";
     return e;
+  };
+
+  // Handle Google Registration
+  const handleGoogleRegister = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      console.error('Google registration error:', error);
+      toast.error('Failed to register with Google');
+    }
   };
 
   const handleSubmit = async (ev) => {
     ev.preventDefault();
     const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
+    if (Object.keys(e).length) { 
+      setErrors(e); 
+      return; 
+    }
+    
     setLoading(true);
-    // TODO: better-auth signUp
-    setTimeout(() => setLoading(false), 1500);
+    
+    const result = await registerUser({
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      image: form.imageUrl || undefined
+    });
+    
+    if (result.success) {
+      router.push('/dashboard');
+    } else {
+      setErrors({ general: result.message });
+    }
+    
+    setLoading(false);
   };
 
   return (
@@ -212,8 +250,16 @@ export default function RegisterPage() {
             </p>
           </div>
 
+          {/* General Error */}
+          {errors.general && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
+              {errors.general}
+            </div>
+          )}
+
+          {/* Google Register Button */}
           <button
-            onClick={() => { /* TODO: better-auth Google signUp */ }}
+            onClick={handleGoogleRegister}
             className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl
               border border-gray-200 dark:border-gray-700
               bg-white dark:bg-gray-900

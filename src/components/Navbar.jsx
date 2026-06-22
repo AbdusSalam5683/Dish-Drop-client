@@ -129,6 +129,14 @@ export default function Navbar() {
     toast.success('Logged out successfully');
   };
 
+  // 👇 Role-based dashboard link
+  const getDashboardLink = () => {
+    if (!isAuthenticated) return null;
+    return user?.role === 'admin' ? '/admin' : '/dashboard';
+  };
+
+  const dashboardLink = getDashboardLink();
+
   return (
     <>
       {/* ── Main Header ── */}
@@ -157,7 +165,11 @@ export default function Navbar() {
                   {link.label}
                 </NavLink>
               ))}
-              {isAuthenticated && <NavLink href="/dashboard">Dashboard</NavLink>}
+              {isAuthenticated && dashboardLink && (
+                <NavLink href={dashboardLink}>
+                  {user?.role === 'admin' ? 'Admin Dashboard' : 'Dashboard'}
+                </NavLink>
+              )}
             </nav>
 
             {/* ── Right Side Actions ── */}
@@ -193,16 +205,15 @@ export default function Navbar() {
                   
                   {/* ── User Avatar ── */}
                   <Link href="/dashboard/profile" className="relative w-9 h-9">
-                
-<Image
-  src={user?.image || "/default-avatar.png"}
-  alt={user?.name || "User avatar"}
-  width={36}
-  height={36}
-  unoptimized={true} 
-  className="rounded-full object-cover ring-2 ring-[#D85A30]/40
-    hover:ring-[#D85A30] transition-all duration-200"
-/>
+                    <Image
+                      src={user?.image || "/default-avatar.png"}
+                      alt={user?.name || "User avatar"}
+                      width={36}
+                      height={36}
+                      unoptimized={true}
+                      className="rounded-full object-cover ring-2 ring-[#D85A30]/40
+                        hover:ring-[#D85A30] transition-all duration-200"
+                    />
                   </Link>
                   
                   {/* ── Sign Out Button ── */}
@@ -253,12 +264,12 @@ export default function Navbar() {
                   {link.label}
                 </NavLink>
               ))}
-              {isAuthenticated && (
+              {isAuthenticated && dashboardLink && (
                 <NavLink
-                  href="/dashboard"
+                  href={dashboardLink}
                   onClick={() => setMobileOpen(false)}
                 >
-                  Dashboard
+                  {user?.role === 'admin' ? 'Admin' : 'Dashboard'}
                 </NavLink>
               )}
 

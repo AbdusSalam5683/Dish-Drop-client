@@ -12,7 +12,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on mount
     const storedUser = localStorage.getItem('user');
     const storedToken = localStorage.getItem('token');
     
@@ -23,6 +22,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // Regular Register
   const register = async (data) => {
     try {
       const response = await api.post('/auth/register', data);
@@ -41,6 +41,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Regular Login
   const login = async (data) => {
     try {
       const response = await api.post('/auth/login', data);
@@ -59,6 +60,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Google Login/Register (Same function)
+  const loginWithGoogle = async () => {
+    try {
+      // Redirect to Google OAuth
+      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+    } catch (error) {
+      console.error('Google auth error:', error);
+      toast.error('Failed to authenticate with Google');
+    }
+  };
+
+  // Logout
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -74,10 +87,12 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+     setUser,
     loading,
     register,
     login,
     logout,
+    loginWithGoogle,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isPremium: user?.isPremium || false,
