@@ -15,8 +15,19 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('user');
     const storedToken = localStorage.getItem('token');
     
+    console.log('🔍 AuthProvider mounted');
+    console.log('📦 storedToken:', storedToken ? 'exists' : 'null');
+    console.log('📦 storedUser:', storedUser ? 'exists' : 'null');
+    
     if (storedToken && storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(JSON.parse(storedUser));
+        console.log('✅ User restored from localStorage');
+      } catch (error) {
+        console.error('❌ Error parsing stored user:', error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
     }
     
     setLoading(false);
@@ -87,7 +98,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
-     setUser,
+    setUser,
     loading,
     register,
     login,

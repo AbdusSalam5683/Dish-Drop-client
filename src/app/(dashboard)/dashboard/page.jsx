@@ -1,7 +1,7 @@
 // dish-drop-client/src/app/(dashboard)/dashboard/page.jsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'motion/react';
@@ -20,50 +20,76 @@ export default function DashboardOverview() {
     totalPurchased: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
+  const [isProcessingToken, setIsProcessingToken] = useState(false);
+  const hasProcessedToken = useRef(false);
 
-  // Handle Google OAuth token from URL
+  // ==================== HANDLE GOOGLE OAUTH TOKEN ====================
   useEffect(() => {
     const token = searchParams.get('token');
     
-    if (token) {
+    console.log('🔑 Token from URL:', token ? 'exists' : 'null');
+    console.log('🔑 isAuthenticated:', isAuthenticated);
+    console.log('🔑 loading:', loading);
+    console.log('🔑 hasProcessedToken:', hasProcessedToken.current);
+    
+    if (token && !hasProcessedToken.current) {
+      hasProcessedToken.current = true;
+      setIsProcessingToken(true);
+      console.log('✅ Token found, processing...');
+      
       // Store token in localStorage
       localStorage.setItem('token', token);
       
       // Fetch user data with the token
       const fetchUser = async () => {
         try {
+          console.log('📤 Fetching user data with token...');
           api.defaults.headers.Authorization = `Bearer ${token}`;
           const response = await api.get('/auth/me');
+          
+          console.log('📥 User response:', response.data);
           
           if (response.data.success) {
             const userData = response.data.user;
             localStorage.setItem('user', JSON.stringify(userData));
             setUser(userData);
+            console.log('✅ User set successfully:', userData.name);
             toast.success('Google login successful! 🎉');
+            
+            // Remove token from URL after successful login
+            router.replace('/dashboard');
+          } else {
+            console.error('❌ User fetch failed:', response.data);
+            toast.error('Failed to load user data');
+            localStorage.removeItem('token');
+            hasProcessedToken.current = false;
+            router.push('/login');
           }
         } catch (error) {
-          console.error('Error fetching user:', error);
+          console.error('❌ Error fetching user:', error);
           toast.error('Failed to load user data');
+          localStorage.removeItem('token');
+          hasProcessedToken.current = false;
+          router.push('/login');
+        } finally {
+          setIsProcessingToken(false);
         }
       };
       
       fetchUser();
-      
-      // Remove token from URL
-      router.replace('/dashboard');
     }
-  }, [searchParams, router, setUser]);
+  }, [searchParams, router, setUser, isAuthenticated, loading]);
 
-  // Fetch stats when user is authenticated
+  // ==================== FETCH STATS ====================
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Update stats from user data
+        console.log('📊 Fetching stats for user:', user?.email);
         setStats({
           totalRecipes: user?.recipeCount || 0,
-          totalFavorites: 0, // Will be fetched from API later
+          totalFavorites: 0,
           totalLikesReceived: user?.totalLikesReceived || 0,
-          totalPurchased: 0, // Will be fetched from API later
+          totalPurchased: 0,
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -72,24 +98,31 @@ export default function DashboardOverview() {
       }
     };
 
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
       fetchStats();
+    } else {
+      setStatsLoading(false);
     }
   }, [user, isAuthenticated]);
 
-  // Redirect to login if not authenticated
+  // ==================== REDIRECT IF NOT AUTHENTICATED ====================
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
+    // Only redirect if not loading, not authenticated, and not processing token
+    if (!loading && !isAuthenticated && !isProcessingToken && !hasProcessedToken.current) {
+      console.log('🔒 Not authenticated, redirecting to login');
       router.push('/login');
     }
-  }, [loading, isAuthenticated, router]);
+  }, [loading, isAuthenticated, router, isProcessingToken]);
 
-  if (loading || statsLoading) {
+  // ==================== LOADING STATE ====================
+  if (loading || statsLoading || isProcessingToken) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#D85A30] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">
+            {isProcessingToken ? 'Authenticating...' : 'Loading dashboard...'}
+          </p>
         </div>
       </div>
     );
@@ -99,6 +132,7 @@ export default function DashboardOverview() {
     return null;
   }
 
+  // ==================== STAT CARDS ====================
   const statCards = [
     {
       label: 'Total Recipes',
@@ -240,7 +274,7 @@ export default function DashboardOverview() {
         </Link>
       </motion.div>
 
-      {/* Additional Info - Premium Status */}
+      {/* Premium Status Badge */}
       {user?.isPremium && (
         <motion.div
           initial={{ opacity: 0 }}
