@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ==================== SYNC AUTH ====================
+  // Sync auth state from localStorage
   const syncAuth = () => {
     try {
       const storedToken = localStorage.getItem('token');
@@ -111,7 +111,6 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     loginWithGoogle,
-    syncAuth,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isPremium: user?.isPremium || false,
