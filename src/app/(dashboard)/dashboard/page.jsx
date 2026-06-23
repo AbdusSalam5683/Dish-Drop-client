@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'motion/react';
@@ -21,6 +21,32 @@ export default function DashboardPage() {
   const [statsLoading, setStatsLoading] = useState(true);
   const [isProcessingToken, setIsProcessingToken] = useState(false);
 
+  // ==================== FETCH STATS ====================
+  const fetchStats = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('📤 Fetching stats...');
+      
+      const response = await fetch('http://localhost:5000/api/users/stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      console.log('📥 Stats response:', data);
+      
+      if (data.success) {
+        setStats(data.stats);
+        console.log('✅ Stats loaded:', data.stats);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
   // ==================== HANDLE GOOGLE OAUTH TOKEN ====================
   useEffect(() => {
     const token = searchParams.get('token');
@@ -40,6 +66,7 @@ export default function DashboardPage() {
             setUser(userData);
             toast.success('Google login successful! 🎉');
             window.history.replaceState({}, '', '/dashboard');
+            fetchStats();
           }
         } catch (error) {
           console.error('Error fetching user:', error);
@@ -52,36 +79,53 @@ export default function DashboardPage() {
       
       fetchUser();
     }
-  }, [searchParams, router, setUser, isProcessingToken]);
+  }, [searchParams, router, setUser, isProcessingToken, fetchStats]);
 
-  // ==================== FETCH STATS ====================
+  // ==================== FETCH STATS ON AUTH ====================
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/users/stats', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          setStats(data.stats);
-        }
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
-        setStatsLoading(false);
-      }
-    };
-
     if (isAuthenticated) {
       fetchStats();
     } else {
       setStatsLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, fetchStats]);
+
+  // ==================== EVENT LISTENER FOR LIKES/FAVORITES UPDATE ====================
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Listen for likes update
+    const handleLikesUpdate = () => {
+      console.log('🔄 Likes updated, refreshing stats...');
+      fetchStats();
+    };
+
+    // Listen for favorites update
+    const handleFavoritesUpdate = () => {
+      console.log('🔄 Favorites updated, refreshing stats...');
+      fetchStats();
+    };
+
+    window.addEventListener('likesUpdated', handleLikesUpdate);
+    window.addEventListener('favoritesUpdated', handleFavoritesUpdate);
+
+    return () => {
+      window.removeEventListener('likesUpdated', handleLikesUpdate);
+      window.removeEventListener('favoritesUpdated', handleFavoritesUpdate);
+    };
+  }, [isAuthenticated, fetchStats]);
+
+  // ==================== AUTO-REFRESH EVERY 30 SECONDS ====================
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing stats...');
+      fetchStats();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, fetchStats]);
 
   // ==================== REDIRECT ====================
   useEffect(() => {
@@ -156,6 +200,7 @@ export default function DashboardPage() {
         </p>
       </motion.div>
 
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => (
           <motion.div
@@ -249,6 +294,7 @@ export default function DashboardPage() {
         </Link>
       </motion.div>
 
+      {/* Premium Status */}
       {user?.isPremium && (
         <motion.div
           initial={{ opacity: 0 }}

@@ -22,6 +22,7 @@ export default function RecipeDetailsPage() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
 
   // ==================== FETCH RECIPE DETAILS ====================
   useEffect(() => {
@@ -92,6 +93,7 @@ export default function RecipeDetailsPage() {
         setIsLiked(data.isLiked);
         setLikes(data.likesCount);
         toast.success(data.message);
+        window.dispatchEvent(new Event('likesUpdated'));
       }
     } catch (error) {
       console.error('Error liking recipe:', error);
@@ -121,6 +123,7 @@ export default function RecipeDetailsPage() {
       if (data.success) {
         setIsFavorite(!isFavorite);
         toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites! ⭐');
+        window.dispatchEvent(new Event('favoritesUpdated'));
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
@@ -174,12 +177,29 @@ export default function RecipeDetailsPage() {
       return;
     }
 
+    setPurchasing(true);
     try {
-      // TODO: Implement Stripe payment
-      toast.success('Purchase functionality coming soon! 🚀');
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/payments/create-recipe-checkout/${id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      if (data.success && data.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      } else {
+        toast.error(data.message || 'Failed to create checkout session');
+      }
     } catch (error) {
       console.error('Error purchasing recipe:', error);
       toast.error('Failed to process purchase');
+    } finally {
+      setPurchasing(false);
     }
   };
 
@@ -367,9 +387,20 @@ export default function RecipeDetailsPage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handlePurchase}
-              className="w-full py-3 bg-gradient-to-r from-[#D85A30] to-[#993C1D] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+              disabled={purchasing}
+              className="w-full py-3 bg-gradient-to-r from-[#D85A30] to-[#993C1D] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              💳 Purchase Recipe - $2.99
+              {purchasing ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                '💳 Purchase Recipe - $2.99'
+              )}
             </motion.button>
           </div>
         </motion.div>
