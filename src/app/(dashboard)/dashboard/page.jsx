@@ -1,7 +1,6 @@
-// dish-drop-client/src/app/(dashboard)/dashboard/page.jsx
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'motion/react';
@@ -9,7 +8,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 
-export default function DashboardOverview() {
+export default function DashboardPage() {
   const { user, isAuthenticated, loading, setUser } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -21,56 +20,31 @@ export default function DashboardOverview() {
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [isProcessingToken, setIsProcessingToken] = useState(false);
-  const hasProcessedToken = useRef(false);
 
   // ==================== HANDLE GOOGLE OAUTH TOKEN ====================
   useEffect(() => {
     const token = searchParams.get('token');
     
-    console.log('🔑 Token from URL:', token ? 'exists' : 'null');
-    console.log('🔑 isAuthenticated:', isAuthenticated);
-    console.log('🔑 loading:', loading);
-    console.log('🔑 hasProcessedToken:', hasProcessedToken.current);
-    
-    if (token && !hasProcessedToken.current) {
-      hasProcessedToken.current = true;
+    if (token && !isProcessingToken) {
       setIsProcessingToken(true);
-      console.log('✅ Token found, processing...');
-      
-      // Store token in localStorage
       localStorage.setItem('token', token);
-      
-      // Fetch user data with the token
+
       const fetchUser = async () => {
         try {
-          console.log('📤 Fetching user data with token...');
           api.defaults.headers.Authorization = `Bearer ${token}`;
           const response = await api.get('/auth/me');
-          
-          console.log('📥 User response:', response.data);
           
           if (response.data.success) {
             const userData = response.data.user;
             localStorage.setItem('user', JSON.stringify(userData));
             setUser(userData);
-            console.log('✅ User set successfully:', userData.name);
             toast.success('Google login successful! 🎉');
-            
-            // Remove token from URL after successful login
-            router.replace('/dashboard');
-          } else {
-            console.error('❌ User fetch failed:', response.data);
-            toast.error('Failed to load user data');
-            localStorage.removeItem('token');
-            hasProcessedToken.current = false;
-            router.push('/login');
+            window.history.replaceState({}, '', '/dashboard');
           }
         } catch (error) {
-          console.error('❌ Error fetching user:', error);
+          console.error('Error fetching user:', error);
           toast.error('Failed to load user data');
           localStorage.removeItem('token');
-          hasProcessedToken.current = false;
-          router.push('/login');
         } finally {
           setIsProcessingToken(false);
         }
@@ -78,19 +52,23 @@ export default function DashboardOverview() {
       
       fetchUser();
     }
-  }, [searchParams, router, setUser, isAuthenticated, loading]);
+  }, [searchParams, router, setUser, isProcessingToken]);
 
   // ==================== FETCH STATS ====================
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        console.log('📊 Fetching stats for user:', user?.email);
-        setStats({
-          totalRecipes: user?.recipeCount || 0,
-          totalFavorites: 0,
-          totalLikesReceived: user?.totalLikesReceived || 0,
-          totalPurchased: 0,
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:5000/api/users/stats', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
+
+        const data = await response.json();
+        if (data.success) {
+          setStats(data.stats);
+        }
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
@@ -98,23 +76,22 @@ export default function DashboardOverview() {
       }
     };
 
-    if (isAuthenticated && user) {
+    if (isAuthenticated) {
       fetchStats();
     } else {
       setStatsLoading(false);
     }
-  }, [user, isAuthenticated]);
+  }, [isAuthenticated]);
 
-  // ==================== REDIRECT IF NOT AUTHENTICATED ====================
+  // ==================== REDIRECT ====================
   useEffect(() => {
-    // Only redirect if not loading, not authenticated, and not processing token
-    if (!loading && !isAuthenticated && !isProcessingToken && !hasProcessedToken.current) {
-      console.log('🔒 Not authenticated, redirecting to login');
+    const token = searchParams.get('token');
+    if (!loading && !isAuthenticated && !token && !isProcessingToken) {
       router.push('/login');
     }
-  }, [loading, isAuthenticated, router, isProcessingToken]);
+  }, [loading, isAuthenticated, router, searchParams, isProcessingToken]);
 
-  // ==================== LOADING STATE ====================
+  // ==================== LOADING ====================
   if (loading || statsLoading || isProcessingToken) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -166,7 +143,6 @@ export default function DashboardOverview() {
 
   return (
     <div className="space-y-8">
-      {/* Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -180,7 +156,6 @@ export default function DashboardOverview() {
         </p>
       </motion.div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => (
           <motion.div
@@ -274,7 +249,6 @@ export default function DashboardOverview() {
         </Link>
       </motion.div>
 
-      {/* Premium Status Badge */}
       {user?.isPremium && (
         <motion.div
           initial={{ opacity: 0 }}

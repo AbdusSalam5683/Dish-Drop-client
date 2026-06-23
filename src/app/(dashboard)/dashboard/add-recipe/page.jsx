@@ -1,11 +1,10 @@
-// dish-drop-client/src/app/(dashboard)/dashboard/add-recipe/page.jsx
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';  // 👈 এই লাইন যোগ করুন
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
+import Image from 'next/image';
 
 const categories = ['Breakfast', 'Lunch', 'Dinner', 'Desserts', 'Vegan', 'Snacks'];
 const cuisines = ['American', 'Indian', 'Italian', 'French', 'Greek', 'Mediterranean', 'Asian', 'Mexican', 'Other'];
@@ -15,6 +14,7 @@ export default function AddRecipePage() {
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
   const [formData, setFormData] = useState({
     recipeName: '',
     recipeImage: '',
@@ -47,12 +47,57 @@ export default function AddRecipePage() {
     setFormData(prev => ({ ...prev, [field]: newArray }));
   };
 
+  // ==================== IMAGE UPLOAD TO IMGBB ====================
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImageUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('https://api.imgbb.com/1/upload?key=' + process.env.NEXT_PUBLIC_IMGBB_API_KEY, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setFormData(prev => ({ ...prev, recipeImage: data.data.url }));
+        toast.success('Image uploaded successfully!');
+      } else {
+        toast.error('Failed to upload image');
+      }
+    } catch (error) {
+      console.error('Image upload error:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  // ==================== SUBMIT RECIPE ====================
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validate
-    if (!formData.recipeName || !formData.category || !formData.cuisineType) {
+    if (!formData.recipeName || !formData.category || !formData.cuisineType || !formData.recipeImage) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    // Filter out empty ingredients and instructions
+    const filteredIngredients = formData.ingredients.filter(item => item.trim() !== '');
+    const filteredInstructions = formData.instructions.filter(item => item.trim() !== '');
+
+    if (filteredIngredients.length === 0) {
+      toast.error('Please add at least one ingredient');
+      return;
+    }
+
+    if (filteredInstructions.length === 0) {
+      toast.error('Please add at least one instruction step');
       return;
     }
 
@@ -64,10 +109,35 @@ export default function AddRecipePage() {
 
     setLoading(true);
     try {
-      // TODO: Implement add recipe API
-      // await api.post('/recipes', formData);
-      toast.success('Recipe added successfully! 🎉');
-      router.push('/dashboard/my-recipes');
+      const token = localStorage.getItem('token');
+      
+      // Prepare data - send ingredients and instructions as arrays
+      const recipeData = {
+        ...formData,
+        ingredients: filteredIngredients,
+        instructions: filteredInstructions
+      };
+
+      console.log('📤 Sending recipe data:', recipeData);
+
+      const response = await fetch('http://localhost:5000/api/recipes', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(recipeData)
+      });
+
+      const data = await response.json();
+      console.log('📥 Response:', data);
+
+      if (data.success) {
+        toast.success('Recipe added successfully! 🎉');
+        router.push('/dashboard/my-recipes');
+      } else {
+        toast.error(data.message || 'Failed to add recipe');
+      }
     } catch (error) {
       console.error('Error adding recipe:', error);
       toast.error('Failed to add recipe');
@@ -88,9 +158,9 @@ export default function AddRecipePage() {
         {!user?.isPremium && (
           <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
             ⚠️ Free users can add up to 2 recipes.{' '}
-            <Link href="/payment/premium" className="text-[#D85A30] hover:underline">
+            <a href="/payment/premium" className="text-[#D85A30] hover:underline">
               Upgrade to Premium
-            </Link>{' '}
+            </a>{' '}
             for unlimited recipes!
           </p>
         )}
@@ -108,22 +178,6 @@ export default function AddRecipePage() {
               name="recipeName"
               value={formData.recipeName}
               onChange={handleChange}
-              className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#D85A30]"
-              required
-            />
-          </div>
-
-          {/* Recipe Image */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Image URL *
-            </label>
-            <input
-              type="url"
-              name="recipeImage"
-              value={formData.recipeImage}
-              onChange={handleChange}
-              placeholder="https://example.com/image.jpg"
               className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#D85A30]"
               required
             />
@@ -196,10 +250,40 @@ export default function AddRecipePage() {
               name="preparationTime"
               value={formData.preparationTime}
               onChange={handleChange}
-              placeholder="30 min"
+              placeholder="e.g., 30 min"
               className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#D85A30]"
               required
             />
+          </div>
+
+          {/* Recipe Image Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Recipe Image *
+            </label>
+            <div className="flex flex-col gap-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#D85A30]"
+                disabled={imageUploading}
+              />
+              {imageUploading && (
+                <p className="text-sm text-gray-500">Uploading...</p>
+              )}
+              {formData.recipeImage && (
+                <div className="relative w-32 h-32 rounded-lg overflow-hidden">
+                  <Image
+                    src={formData.recipeImage}
+                    alt="Recipe"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 128px) 100vw"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -216,7 +300,6 @@ export default function AddRecipePage() {
                 onChange={(e) => handleArrayChange(index, 'ingredients', e.target.value)}
                 placeholder={`Ingredient ${index + 1}`}
                 className="flex-1 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#D85A30]"
-                required
               />
               <button
                 type="button"
@@ -243,7 +326,7 @@ export default function AddRecipePage() {
           </label>
           {formData.instructions.map((item, index) => (
             <div key={index} className="flex gap-2 mb-2">
-              <span className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-medium">
+              <span className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-medium min-w-[40px] text-center">
                 {index + 1}
               </span>
               <input
@@ -252,7 +335,6 @@ export default function AddRecipePage() {
                 onChange={(e) => handleArrayChange(index, 'instructions', e.target.value)}
                 placeholder={`Step ${index + 1}`}
                 className="flex-1 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#D85A30]"
-                required
               />
               <button
                 type="button"
@@ -274,7 +356,7 @@ export default function AddRecipePage() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || imageUploading}
           className="mt-8 w-full py-3 bg-[#D85A30] text-white font-semibold rounded-lg hover:bg-[#993C1D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? 'Adding Recipe...' : 'Add Recipe'}

@@ -1,4 +1,3 @@
-// dish-drop-client/src/app/(public)/recipe/[id]/page.jsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -24,7 +23,7 @@ export default function RecipeDetailsPage() {
   const [reportReason, setReportReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch recipe details
+  // ==================== FETCH RECIPE DETAILS ====================
   useEffect(() => {
     const fetchRecipe = async () => {
       try {
@@ -46,7 +45,31 @@ export default function RecipeDetailsPage() {
     }
   }, [id, router]);
 
-  // Handle Like
+  // ==================== CHECK FAVORITE STATUS ====================
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (!isAuthenticated || !id) return;
+
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:5000/api/favorites/${id}/check`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setIsFavorite(data.isFavorite);
+        }
+      } catch (error) {
+        console.error('Error checking favorite:', error);
+      }
+    };
+
+    checkFavorite();
+  }, [id, isAuthenticated]);
+
+  // ==================== HANDLE LIKE ====================
   const handleLike = async () => {
     if (!isAuthenticated) {
       toast.error('Please login to like recipes');
@@ -55,17 +78,28 @@ export default function RecipeDetailsPage() {
     }
 
     try {
-      // TODO: Implement like API
-      setIsLiked(!isLiked);
-      setLikes(isLiked ? likes - 1 : likes + 1);
-      toast.success(isLiked ? 'Unliked recipe' : 'Liked recipe! ❤️');
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/recipes/${id}/like`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setIsLiked(data.isLiked);
+        setLikes(data.likesCount);
+        toast.success(data.message);
+      }
     } catch (error) {
       console.error('Error liking recipe:', error);
       toast.error('Failed to like recipe');
     }
   };
 
-  // Handle Favorite
+  // ==================== HANDLE FAVORITE ====================
   const handleFavorite = async () => {
     if (!isAuthenticated) {
       toast.error('Please login to save favorites');
@@ -74,16 +108,27 @@ export default function RecipeDetailsPage() {
     }
 
     try {
-      // TODO: Implement favorite API
-      setIsFavorite(!isFavorite);
-      toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites! ⭐');
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/favorites/${id}`, {
+        method: isFavorite ? 'DELETE' : 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setIsFavorite(!isFavorite);
+        toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites! ⭐');
+      }
     } catch (error) {
-      console.error('Error favoriting recipe:', error);
-      toast.error('Failed to save favorite');
+      console.error('Error toggling favorite:', error);
+      toast.error('Failed to update favorites');
     }
   };
 
-  // Handle Report
+  // ==================== HANDLE REPORT ====================
   const handleReport = async () => {
     if (!reportReason) {
       toast.error('Please select a reason');
@@ -92,10 +137,27 @@ export default function RecipeDetailsPage() {
 
     setSubmitting(true);
     try {
-      // TODO: Implement report API
-      toast.success('Report submitted successfully');
-      setShowReportModal(false);
-      setReportReason('');
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/reports', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          recipeId: id,
+          reason: reportReason
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Report submitted successfully');
+        setShowReportModal(false);
+        setReportReason('');
+      } else {
+        toast.error(data.message || 'Failed to submit report');
+      }
     } catch (error) {
       console.error('Error reporting recipe:', error);
       toast.error('Failed to submit report');
@@ -104,7 +166,7 @@ export default function RecipeDetailsPage() {
     }
   };
 
-  // Handle Purchase
+  // ==================== HANDLE PURCHASE ====================
   const handlePurchase = async () => {
     if (!isAuthenticated) {
       toast.error('Please login to purchase recipes');
@@ -121,6 +183,7 @@ export default function RecipeDetailsPage() {
     }
   };
 
+  // ==================== LOADING ====================
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8 px-4">
@@ -155,6 +218,7 @@ export default function RecipeDetailsPage() {
     );
   }
 
+  // ==================== RENDER ====================
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -269,36 +333,33 @@ export default function RecipeDetailsPage() {
               </div>
             </div>
 
-            {/* Description / Ingredients */}
-            <div className="grid md:grid-cols-2 gap-8 mb-6">
-              {/* Ingredients */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
-                  🛒 Ingredients
-                </h3>
-                <ul className="space-y-2">
-                  {recipe.ingredients?.map((item, index) => (
-                    <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
-                      <span className="text-[#D85A30] font-bold">•</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            {/* Ingredients */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
+                🛒 Ingredients
+              </h3>
+              <ul className="space-y-2">
+                {recipe.ingredients?.map((item, index) => (
+                  <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                    <span className="text-[#D85A30] font-bold">•</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-              {/* Instructions */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
-                  👨‍🍳 Instructions
-                </h3>
-                <ol className="space-y-3 list-decimal list-inside">
-                  {recipe.instructions?.map((step, index) => (
-                    <li key={index} className="text-gray-700 dark:text-gray-300">
-                      {step}
-                    </li>
-                  ))}
-                </ol>
-              </div>
+            {/* Instructions */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
+                👨‍🍳 Instructions
+              </h3>
+              <ol className="space-y-3 list-decimal list-inside">
+                {recipe.instructions?.map((step, index) => (
+                  <li key={index} className="text-gray-700 dark:text-gray-300">
+                    {step}
+                  </li>
+                ))}
+              </ol>
             </div>
 
             {/* Purchase Button */}
