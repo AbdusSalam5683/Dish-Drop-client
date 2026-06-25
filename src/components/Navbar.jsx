@@ -135,7 +135,14 @@ export default function Navbar() {
     return user?.role === 'admin' ? '/admin' : '/dashboard';
   };
 
+  // 👇 Role-based profile link
+  const getProfileLink = () => {
+    if (!isAuthenticated) return null;
+    return user?.role === 'admin' ? '/admin/profile' : '/dashboard/profile';
+  };
+
   const dashboardLink = getDashboardLink();
+  const profileLink = getProfileLink();
 
   return (
     <>
@@ -204,17 +211,19 @@ export default function Navbar() {
                   )}
                   
                   {/* ── User Avatar ── */}
-                  <Link href="/dashboard/profile" className="relative w-9 h-9">
-                    <Image
-                      src={user?.image || "/default-avatar.png"}
-                      alt={user?.name || "User avatar"}
-                      width={36}
-                      height={36}
-                      unoptimized={true}
-                      className="rounded-full object-cover ring-2 ring-[#D85A30]/40
-                        hover:ring-[#D85A30] transition-all duration-200"
-                    />
-                  </Link>
+                  {profileLink && (
+                    <Link href={profileLink} className="relative w-9 h-9">
+                      <Image
+                        src={user?.image || "/default-avatar.png"}
+                        alt={user?.name || "User avatar"}
+                        width={36}
+                        height={36}
+                        unoptimized={true}
+                        className="rounded-full object-cover ring-2 ring-[#D85A30]/40
+                          hover:ring-[#D85A30] transition-all duration-200"
+                      />
+                    </Link>
+                  )}
                   
                   {/* ── Sign Out Button ── */}
                   <button

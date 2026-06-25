@@ -2,7 +2,6 @@
 import { NextResponse } from 'next/server';
 
 export function middleware(request) {
-  // Get token from cookies
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
@@ -15,8 +14,15 @@ export function middleware(request) {
     pathname === route || pathname.startsWith('/recipe/')
   );
 
+  // ==================== SKIP STATIC FILES ====================
+  if (pathname.startsWith('/_next') || 
+      pathname.startsWith('/api') || 
+      pathname.includes('.')) {
+    return NextResponse.next();
+  }
+
   // ==================== AUTH CHECK ====================
-  // If trying to access protected route without token
+  // Redirect to login if no token and not public
   if (!token && !isPublicRoute) {
     console.log('🔒 Redirecting to login from:', pathname);
     const loginUrl = new URL('/login', request.url);
@@ -24,39 +30,39 @@ export function middleware(request) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // ==================== ADMIN ROUTES ====================
-  // For admin routes, we'll check role on client side
-  // But we can still protect the route
-  if (pathname.startsWith('/admin')) {
-    // We'll let the client-side adminGuard handle role check
-    // But redirect to login if no token
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-    return NextResponse.next();
-  }
+  // ==================== IF TOKEN EXISTS ====================
+  if (token) {
+    try {
+      // Decode token to get role
+      const decoded = JSON.parse(atob(token.split('.')[1]));
+      const userRole = decoded.role || 'user';
+      
+      console.log('👤 User role:', userRole);
 
-  // ==================== DASHBOARD ROUTES ====================
-  if (pathname.startsWith('/dashboard')) {
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-    return NextResponse.next();
-  }
+      // If on login/register, redirect based on role
+      if (pathname === '/login' || pathname === '/register') {
+        const redirectUrl = userRole === 'admin' ? '/admin' : '/dashboard';
+        console.log(`🔑 Redirecting to ${redirectUrl} from:`, pathname);
+        return NextResponse.redirect(new URL(redirectUrl, request.url));
+      }
 
-  // ==================== API ROUTES ====================
-  // Skip middleware for API routes
-  if (pathname.startsWith('/api')) {
-    return NextResponse.next();
+      // ⚠️ REMOVED: Admin/User dashboard redirect - এখন Layout এ handle করে
+      // এই অংশটি বাদ দেওয়া হয়েছে কারণ Layout-এ ইতিমধ্যে Guard আছে
+
+    } catch (error) {
+      console.error('❌ Token decode error:', error);
+      // Invalid token - clear cookie and redirect to login
+      const response = NextResponse.redirect(new URL('/login', request.url));
+      response.cookies.delete('token');
+      return response;
+    }
   }
 
   return NextResponse.next();
 }
 
-// ==================== CONFIG ====================
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

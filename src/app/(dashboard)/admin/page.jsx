@@ -1,4 +1,3 @@
-// dish-drop-client/src/app/(dashboard)/admin/page.jsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +6,6 @@ import { motion } from 'motion/react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
-import Image from 'next/image';
 
 export default function AdminOverview() {
   const { user } = useAuth();
@@ -104,9 +102,19 @@ export default function AdminOverview() {
             <p className="text-sm font-medium text-gray-800 dark:text-white">{user?.name}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-[#D85A30]/10 flex items-center justify-center text-2xl overflow-hidden ring-2 ring-[#D85A30]/20">
+          {/* 👇 FIX: Use img tag instead of next/image to avoid download popup */}
+          <div className="w-12 h-12 rounded-full bg-[#D85A30]/10 flex items-center justify-center text-2xl overflow-hidden ring-2 ring-[#D85A30]/20 flex-shrink-0">
             {user?.image ? (
-              <Image src={user.image} alt={user.name} width={48} height={48} className="object-cover" />
+              <img
+                src={user.image}
+                alt={user.name}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.innerHTML = `<span>${user?.name?.[0] || 'A'}</span>`;
+                }}
+              />
             ) : (
               <span>{user?.name?.[0] || 'A'}</span>
             )}
@@ -161,8 +169,22 @@ export default function AdminOverview() {
             {recentActivity.length > 0 ? (
               recentActivity.map((u) => (
                 <div key={u._id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <div className="w-8 h-8 rounded-full bg-[#D85A30]/10 flex items-center justify-center text-sm">
-                    {u.name?.[0] || 'U'}
+                  {/* 👇 Use img instead of next/image */}
+                  <div className="w-8 h-8 rounded-full bg-[#D85A30]/10 flex items-center justify-center text-sm overflow-hidden flex-shrink-0">
+                    {u.image ? (
+                      <img
+                        src={u.image}
+                        alt={u.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.parentElement.innerHTML = `<span>${u.name?.[0] || 'U'}</span>`;
+                        }}
+                      />
+                    ) : (
+                      <span>{u.name?.[0] || 'U'}</span>
+                    )}
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-800 dark:text-white">{u.name}</p>

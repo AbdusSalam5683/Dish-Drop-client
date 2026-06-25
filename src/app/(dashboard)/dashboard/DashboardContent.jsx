@@ -5,10 +5,11 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'motion/react';
 import Link from 'next/link';
+import Image from 'next/image';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 
-export default function DashboardPage() {
+export default function DashboardContent() {
   const { user, isAuthenticated, loading, setUser } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -23,6 +24,45 @@ export default function DashboardPage() {
   const [isPremium, setIsPremium] = useState(false);
   const [recentLikes, setRecentLikes] = useState([]);
   const [likesLoading, setLikesLoading] = useState(true);
+
+  // ==================== HANDLE GOOGLE OAUTH TOKEN ====================
+  useEffect(() => {
+    const token = searchParams.get('token');
+    console.log('🔑 Token from URL:', token ? '✅ exists' : '❌ null');
+    
+    if (token && !isProcessingToken) {
+      setIsProcessingToken(true);
+      console.log('📦 Processing token...');
+      localStorage.setItem('token', token);
+
+      const fetchUser = async () => {
+        try {
+          api.defaults.headers.Authorization = `Bearer ${token}`;
+          const response = await api.get('/auth/me');
+          console.log('📥 User response:', response.data);
+          
+          if (response.data.success) {
+            const userData = response.data.user;
+            localStorage.setItem('user', JSON.stringify(userData));
+            setUser(userData);
+            toast.success('Google login successful! 🎉');
+            window.history.replaceState({}, '', '/dashboard');
+            fetchStats();
+            checkPremiumStatus();
+            fetchRecentLikes();
+          }
+        } catch (error) {
+          console.error('❌ Error fetching user:', error);
+          toast.error('Failed to load user data');
+          localStorage.removeItem('token');
+        } finally {
+          setIsProcessingToken(false);
+        }
+      };
+      
+      fetchUser();
+    }
+  }, [searchParams, setUser, isProcessingToken]);
 
   // ==================== FORCE SYNC AUTH ====================
   const forceSyncAuth = useCallback(() => {
@@ -147,44 +187,6 @@ export default function DashboardPage() {
     }
   }, [loading, isAuthenticated, isProcessingToken, router, forceSyncAuth]);
 
-  // ==================== HANDLE GOOGLE OAUTH TOKEN ====================
-  useEffect(() => {
-    const token = searchParams.get('token');
-    
-    if (token && !isProcessingToken) {
-      setIsProcessingToken(true);
-      localStorage.setItem('token', token);
-
-      const fetchUser = async () => {
-        try {
-          api.defaults.headers.Authorization = `Bearer ${token}`;
-          const response = await api.get('/auth/me');
-          
-          if (response.data.success) {
-            const userData = response.data.user;
-            localStorage.setItem('user', JSON.stringify(userData));
-            setUser(userData);
-            toast.success('Google login successful! 🎉');
-            window.history.replaceState({}, '', '/dashboard');
-            await Promise.all([
-              fetchStats(),
-              checkPremiumStatus(),
-              fetchRecentLikes()
-            ]);
-          }
-        } catch (error) {
-          console.error('Error fetching user:', error);
-          toast.error('Failed to load user data');
-          localStorage.removeItem('token');
-        } finally {
-          setIsProcessingToken(false);
-        }
-      };
-      
-      fetchUser();
-    }
-  }, [searchParams, router, setUser, isProcessingToken, fetchStats, checkPremiumStatus, fetchRecentLikes]);
-
   // ==================== FETCH DATA ON AUTH ====================
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -307,6 +309,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {/* Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -455,24 +458,18 @@ export default function DashboardPage() {
                 transition={{ delay: index * 0.05 }}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
               >
-                {/* Liker Avatar - 👇 FIX: Use img instead of next/image */}
+                {/* Liker Avatar */}
                 <div className="w-10 h-10 rounded-full bg-[#D85A30]/10 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
                   {like.likerImage ? (
-                    <img
+                    <Image
                       src={like.likerImage}
                       alt={like.likerName}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        const parent = e.target.parentElement;
-                        if (parent) {
-                          parent.innerHTML = `<span class="text-lg">${like.likerName?.[0] || '👤'}</span>`;
-                        }
-                      }}
+                      width={40}
+                      height={40}
+                      className="object-cover"
                     />
                   ) : (
-                    <span className="text-lg">{like.likerName?.[0] || '👤'}</span>
+                    <span>{like.likerName?.[0] || '👤'}</span>
                   )}
                 </div>
 
@@ -493,16 +490,14 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                {/* Recipe Thumbnail - 👇 FIX: Use img instead of next/image */}
-                <div className="w-12 h-12 relative rounded-lg overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
-                  <img
+                {/* Recipe Thumbnail */}
+                <div className="w-12 h-12 relative rounded-lg overflow-hidden flex-shrink-0">
+                  <Image
                     src={like.recipeImage}
                     alt={like.recipeName}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/48x48/D85A30/FFFFFF?text=Food';
-                    }}
+                    fill
+                    className="object-cover"
+                    sizes="48px"
                   />
                 </div>
               </motion.div>
