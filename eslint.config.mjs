@@ -1,3 +1,4 @@
+// dish-drop-client/eslint.config.mjs
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import { FlatCompat } from "@eslint/eslintrc";
@@ -11,17 +12,7 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals"),
-  {
-    rules: {
-      // ❌ কঠোর নিয়ম শিথিল করা হয়েছে (টেম্পোরারি)
-      "@typescript-eslint/no-unused-vars": "off",
-      "@typescript-eslint/no-explicit-any": "off",
-      "react/no-unescaped-entities": "off",
-      "@next/next/no-img-element": "off",
-      "no-console": "warn", // ⚠️ সতর্কতা হিসেবে রাখা
-      "react-hooks/exhaustive-deps": "warn",
-    },
-  },
+  ...compat.extends("next/typescript"),
 ];
 
 export default eslintConfig;
