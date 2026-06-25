@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function PurchasedPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -87,7 +87,7 @@ export default function PurchasedPage() {
           🛒 Purchased Recipes
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
-          {purchases.length} recipes purchased
+          {purchases.length} items purchased
         </p>
       </div>
 
@@ -97,7 +97,7 @@ export default function PurchasedPage() {
             <thead className="bg-gray-50 dark:bg-gray-900/50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Recipe
+                  Item
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Amount
@@ -115,34 +115,62 @@ export default function PurchasedPage() {
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {purchases.map((purchase, index) => {
-                // 👇 Extract recipe ID properly
-                const recipeId = purchase.recipeId?._id || purchase.recipeId;
-                const recipeImage = purchase.recipeImage || purchase.recipeId?.recipeImage || '/placeholder.jpg';
-                const recipeName = purchase.recipeName || purchase.recipeId?.recipeName || 'Unknown Recipe';
+                // ✅ Check if it's a premium purchase
+                const isPremium = purchase.recipeName === 'Premium Membership' || !purchase.recipeId;
+                const recipeName = purchase.recipeName || 'Unknown Recipe';
+                const recipeImage = purchase.recipeImage || '/placeholder.jpg';
+                const recipeId = purchase.recipeId?._id || purchase.recipeId || null;
 
                 return (
                   <motion.tr
-                    key={purchase._id}
+                    key={purchase._id || index}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: index * 0.05 }}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                      isPremium ? 'bg-gradient-to-r from-yellow-50/50 to-transparent dark:from-yellow-900/10' : ''
+                    }`}
                   >
-                    {/* Recipe */}
+                    {/* Item */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 relative rounded-lg overflow-hidden flex-shrink-0">
-                          <Image
-                            src={recipeImage}
-                            alt={recipeName}
-                            fill
-                            className="object-cover"
-                            sizes="48px"
-                          />
+                        <div className="w-12 h-12 relative rounded-lg overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
+                          {isPremium ? (
+                            <div className="w-full h-full flex items-center justify-center text-3xl bg-gradient-to-br from-yellow-400 to-yellow-600">
+                              ⭐
+                            </div>
+                          ) : (
+                            <Image
+                              src={recipeImage}
+                              alt={recipeName}
+                              fill
+                              className="object-cover"
+                              sizes="48px"
+                              onError={(e) => {
+                                e.target.src = '/placeholder.jpg';
+                              }}
+                            />
+                          )}
                         </div>
-                        <span className="font-medium text-gray-800 dark:text-white">
-                          {recipeName}
-                        </span>
+                        <div>
+                          <span className="font-medium text-gray-800 dark:text-white">
+                            {isPremium ? (
+                              <span className="flex items-center gap-2">
+                                <span>⭐ Premium Membership</span>
+                                <span className="text-xs bg-yellow-500 text-white px-2 py-0.5 rounded-full">
+                                  Active
+                                </span>
+                              </span>
+                            ) : (
+                              recipeName
+                            )}
+                          </span>
+                          {isPremium && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              Unlimited recipes, premium badge & more
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </td>
 
@@ -169,9 +197,13 @@ export default function PurchasedPage() {
                       </span>
                     </td>
 
-                    {/* Action - FIXED */}
+                    {/* Action */}
                     <td className="px-6 py-4">
-                      {recipeId ? (
+                      {isPremium ? (
+                        <span className="text-sm text-yellow-600 font-medium flex items-center gap-1">
+                          ⭐ Active
+                        </span>
+                      ) : recipeId ? (
                         <Link
                           href={`/recipe/${recipeId}`}
                           className="text-sm text-[#D85A30] hover:text-[#993C1D] transition-colors"
@@ -189,6 +221,29 @@ export default function PurchasedPage() {
           </table>
         </div>
       </div>
+
+      {/* Premium Stats Card */}
+      {user?.isPremium && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-6 p-4 bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 dark:from-yellow-500/20 dark:to-yellow-600/20 border border-yellow-500/30 rounded-xl"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">⭐</span>
+            <div>
+              <h4 className="font-semibold text-gray-800 dark:text-white">Premium Member</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                You have unlimited access to all premium features
+              </p>
+            </div>
+            <span className="ml-auto text-xs bg-yellow-500 text-white px-3 py-1 rounded-full">
+              Active
+            </span>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

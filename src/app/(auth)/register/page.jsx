@@ -9,6 +9,7 @@ import { motion } from "motion/react";
 import { useAuth } from "@/context/AuthContext";
 import DishDropLogo from "@/components/Logo";
 import toast from "react-hot-toast";
+import Image from "next/image";
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -167,6 +168,7 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
   const [errors, setErrors] = useState({});
 
   const set = (key) => (e) => {
@@ -185,6 +187,36 @@ export default function RegisterPage() {
     else if (!/[a-z]/.test(form.password)) e.password = "Requires a lowercase letter";
     if (form.confirm !== form.password) e.confirm = "Passwords do not match";
     return e;
+  };
+
+  // ==================== IMAGE UPLOAD ====================
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImageUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('https://api.imgbb.com/1/upload?key=' + process.env.NEXT_PUBLIC_IMGBB_API_KEY, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setForm(p => ({ ...p, imageUrl: data.data.url }));
+        toast.success('Image uploaded successfully!');
+      } else {
+        toast.error('Failed to upload image');
+      }
+    } catch (error) {
+      console.error('Image upload error:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setImageUploading(false);
+    }
   };
 
   const handleGoogleRegister = async () => {
@@ -214,7 +246,6 @@ export default function RegisterPage() {
     });
     
     if (result.success) {
-      // 👇 Role-based redirect (new users are always 'user')
       router.push('/dashboard');
     } else {
       setErrors({ general: result.message });
@@ -256,6 +287,7 @@ export default function RegisterPage() {
             </div>
           )}
 
+          {/* Google Register Button */}
           <button
             onClick={handleGoogleRegister}
             className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl
@@ -282,9 +314,57 @@ export default function RegisterPage() {
             <InputField label="Email" type="email" value={form.email} onChange={set("email")}
               placeholder="your@email.com" error={errors.email} />
 
-            <InputField label="Profile Image URL" value={form.imageUrl} onChange={set("imageUrl")}
-              placeholder="https://example.com/photo.jpg" error={errors.imageUrl}
-              hint="Optional — upload to imgbb and paste the link" />
+            {/* ==================== IMAGE UPLOAD FIELD ==================== */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Profile Image
+              </label>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="flex-1 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#D85A30]"
+                    disabled={imageUploading}
+                  />
+                  {imageUploading && (
+                    <span className="text-sm text-gray-500">Uploading...</span>
+                  )}
+                </div>
+                {form.imageUrl && (
+                  <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <div className="w-12 h-12 relative rounded-full overflow-hidden flex-shrink-0">
+                      <Image
+                        src={form.imageUrl}
+                        alt="Profile"
+                        fill
+                        className="object-cover"
+                        sizes="48px"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-700 dark:text-gray-300">Image uploaded</p>
+                      <button
+                        type="button"
+                        onClick={() => setForm(p => ({ ...p, imageUrl: '' }))}
+                        className="text-xs text-red-500 hover:text-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <InputField
+                  label="Or paste image URL"
+                  type="url"
+                  value={form.imageUrl}
+                  onChange={set("imageUrl")}
+                  placeholder="https://example.com/photo.jpg"
+                  error={errors.imageUrl}
+                />
+              </div>
+            </div>
 
             <div>
               <InputField label="Password" type={showPass ? "text" : "password"}
@@ -324,7 +404,7 @@ export default function RegisterPage() {
 
             <motion.button
               type="submit"
-              disabled={loading}
+              disabled={loading || imageUploading}
               whileTap={{ scale: 0.98 }}
               className="w-full py-3 rounded-xl font-semibold text-sm text-white
                 bg-[#D85A30] hover:bg-[#993C1D] disabled:opacity-60 disabled:cursor-not-allowed
