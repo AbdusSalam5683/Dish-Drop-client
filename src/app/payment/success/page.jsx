@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import api from '@/lib/api';
 
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
@@ -25,8 +26,6 @@ export default function PaymentSuccessPage() {
     if (recipeIdParam) {
       setPaymentType('recipe');
       setRecipeId(recipeIdParam);
-    } else {
-      setPaymentType('premium');
     }
 
     // Update user status
@@ -42,10 +41,20 @@ export default function PaymentSuccessPage() {
           });
           const data = await response.json();
           if (data.success) {
+            // Update localStorage
             localStorage.setItem('user', JSON.stringify(data.user));
+            
+            // 👇 Update user in context
+            // Note: This assumes you have a way to update user context
+            // If using AuthContext, you might need to call setUser
+            window.dispatchEvent(new Event('userUpdated'));
+            
+            // 👇 Dispatch payment completed event for dashboard
+            window.dispatchEvent(new Event('paymentCompleted'));
+            
+            toast.success('Payment successful! 🎉');
           }
         }
-        toast.success('Payment successful! 🎉');
       } catch (error) {
         console.error('Error updating status:', error);
         toast.error('Failed to update account status');
@@ -76,23 +85,16 @@ export default function PaymentSuccessPage() {
         transition={{ duration: 0.5 }}
         className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 text-center"
       >
-        {/* Icon */}
         <div className="text-6xl mb-4">🎉</div>
-        
-        {/* Title */}
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
           Payment Successful!
         </h2>
-        
-        {/* Message */}
         <p className="text-gray-600 dark:text-gray-400 mb-6">
           {paymentType === 'premium' 
             ? 'Your account has been upgraded to Premium! 🚀'
             : 'You have successfully purchased this recipe! 📝'
           }
         </p>
-
-        {/* Buttons */}
         <div className="space-y-3">
           {paymentType === 'recipe' && recipeId && (
             <Link
@@ -115,8 +117,6 @@ export default function PaymentSuccessPage() {
             Browse More Recipes
           </Link>
         </div>
-
-        {/* Help Text */}
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-6">
           Your payment was successful. Thank you for your purchase!
         </p>

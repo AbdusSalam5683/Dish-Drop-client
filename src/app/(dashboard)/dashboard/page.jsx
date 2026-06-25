@@ -20,6 +20,7 @@ export default function DashboardPage() {
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [isProcessingToken, setIsProcessingToken] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
 
   // ==================== FETCH STATS ====================
   const fetchStats = useCallback(async () => {
@@ -47,6 +48,25 @@ export default function DashboardPage() {
     }
   }, []);
 
+  // ==================== CHECK PREMIUM STATUS ====================
+  const checkPremiumStatus = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/payments/premium-status', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setIsPremium(data.isPremium);
+        console.log('⭐ Premium status:', data.isPremium);
+      }
+    } catch (error) {
+      console.error('Error checking premium:', error);
+    }
+  }, []);
+
   // ==================== HANDLE GOOGLE OAUTH TOKEN ====================
   useEffect(() => {
     const token = searchParams.get('token');
@@ -67,6 +87,7 @@ export default function DashboardPage() {
             toast.success('Google login successful! 🎉');
             window.history.replaceState({}, '', '/dashboard');
             fetchStats();
+            checkPremiumStatus();
           }
         } catch (error) {
           console.error('Error fetching user:', error);
@@ -79,28 +100,27 @@ export default function DashboardPage() {
       
       fetchUser();
     }
-  }, [searchParams, router, setUser, isProcessingToken, fetchStats]);
+  }, [searchParams, router, setUser, isProcessingToken, fetchStats, checkPremiumStatus]);
 
   // ==================== FETCH STATS ON AUTH ====================
   useEffect(() => {
     if (isAuthenticated) {
       fetchStats();
+      checkPremiumStatus();
     } else {
       setStatsLoading(false);
     }
-  }, [isAuthenticated, fetchStats]);
+  }, [isAuthenticated, fetchStats, checkPremiumStatus]);
 
   // ==================== EVENT LISTENER FOR LIKES/FAVORITES UPDATE ====================
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    // Listen for likes update
     const handleLikesUpdate = () => {
       console.log('🔄 Likes updated, refreshing stats...');
       fetchStats();
     };
 
-    // Listen for favorites update
     const handleFavoritesUpdate = () => {
       console.log('🔄 Favorites updated, refreshing stats...');
       fetchStats();
@@ -115,17 +135,46 @@ export default function DashboardPage() {
     };
   }, [isAuthenticated, fetchStats]);
 
-  // ==================== AUTO-REFRESH EVERY 30 SECONDS ====================
+  // ==================== EVENT LISTENER FOR PAYMENT UPDATE ====================
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handlePaymentUpdate = () => {
+      console.log('🔄 Payment updated, refreshing stats and user...');
+      fetchStats();
+      checkPremiumStatus();
+      
+      // Refresh user data
+      const token = localStorage.getItem('token');
+      if (token) {
+        api.get('/auth/me').then(response => {
+          if (response.data.success) {
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            setUser(response.data.user);
+          }
+        });
+      }
+    };
+
+    window.addEventListener('paymentCompleted', handlePaymentUpdate);
+
+    return () => {
+      window.removeEventListener('paymentCompleted', handlePaymentUpdate);
+    };
+  }, [isAuthenticated, fetchStats, checkPremiumStatus, setUser]);
+
+  // ==================== AUTO-REFRESH ====================
   useEffect(() => {
     if (!isAuthenticated) return;
 
     const interval = setInterval(() => {
       console.log('🔄 Auto-refreshing stats...');
       fetchStats();
+      checkPremiumStatus();
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [isAuthenticated, fetchStats]);
+  }, [isAuthenticated, fetchStats, checkPremiumStatus]);
 
   // ==================== REDIRECT ====================
   useEffect(() => {
@@ -229,7 +278,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Premium Banner */}
-      {!user?.isPremium && (
+      {!isPremium && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -294,8 +343,8 @@ export default function DashboardPage() {
         </Link>
       </motion.div>
 
-      {/* Premium Status */}
-      {user?.isPremium && (
+      {/* Premium Status Badge */}
+      {isPremium && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '@/context/AuthContext';
 import { recipeAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -20,9 +20,11 @@ export default function RecipeDetailsPage() {
   const [isLiked, setIsLiked] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // ==================== FETCH RECIPE DETAILS ====================
   useEffect(() => {
@@ -190,7 +192,6 @@ export default function RecipeDetailsPage() {
 
       const data = await response.json();
       if (data.success && data.url) {
-        // Redirect to Stripe Checkout
         window.location.href = data.url;
       } else {
         toast.error(data.message || 'Failed to create checkout session');
@@ -202,6 +203,44 @@ export default function RecipeDetailsPage() {
       setPurchasing(false);
     }
   };
+
+  // ==================== HANDLE DELETE ====================
+  const handleDeleteConfirm = async () => {
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem('token');
+      console.log('🗑️ Deleting recipe:', id);
+
+      const response = await fetch(`http://localhost:5000/api/recipes/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      console.log('📥 Delete response:', data);
+
+      if (data.success) {
+        toast.success('✅ Recipe deleted successfully!');
+        setShowDeleteModal(false);
+        router.push('/browse-recipes');
+      } else {
+        toast.error(data.message || '❌ Failed to delete recipe');
+      }
+    } catch (error) {
+      console.error('❌ Error deleting recipe:', error);
+      toast.error('❌ Failed to delete recipe. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // ==================== CHECK PERMISSIONS ====================
+  const isAdmin = user?.role === 'admin';
+  const isAuthor = user?._id === recipe?.authorId?._id;
+  const canEdit = isAuthenticated && (isAdmin || isAuthor);
 
   // ==================== LOADING ====================
   if (loading) {
@@ -280,6 +319,11 @@ export default function RecipeDetailsPage() {
               <span className="px-3 py-1.5 bg-black/50 backdrop-blur-sm text-white text-sm font-semibold rounded-lg">
                 {recipe.difficultyLevel}
               </span>
+              {recipe.isFeatured && (
+                <span className="px-3 py-1.5 bg-yellow-500 text-white text-sm font-semibold rounded-lg">
+                  ⭐ Featured
+                </span>
+              )}
             </div>
           </div>
 
@@ -301,6 +345,9 @@ export default function RecipeDetailsPage() {
                 {recipe.authorId?.isPremium && (
                   <span className="text-xs bg-yellow-500 text-white px-2 py-0.5 rounded-full">⭐ Premium</span>
                 )}
+                {isAuthor && (
+                  <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">👤 Your Recipe</span>
+                )}
               </div>
             </div>
 
@@ -316,7 +363,6 @@ export default function RecipeDetailsPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Like Button */}
                 <button
                   onClick={handleLike}
                   className={`p-2 rounded-lg transition-colors ${
@@ -329,7 +375,6 @@ export default function RecipeDetailsPage() {
                   <span className="text-xl">{isLiked ? '❤️' : '🤍'}</span>
                 </button>
 
-                {/* Favorite Button */}
                 <button
                   onClick={handleFavorite}
                   className={`p-2 rounded-lg transition-colors ${
@@ -342,14 +387,15 @@ export default function RecipeDetailsPage() {
                   <span className="text-xl">{isFavorite ? '⭐' : '☆'}</span>
                 </button>
 
-                {/* Report Button */}
-                <button
-                  onClick={() => setShowReportModal(true)}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
-                  title="Report"
-                >
-                  <span className="text-xl">🚩</span>
-                </button>
+                {!isAdmin && (
+                  <button
+                    onClick={() => setShowReportModal(true)}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
+                    title="Report"
+                  >
+                    <span className="text-xl">🚩</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -382,31 +428,111 @@ export default function RecipeDetailsPage() {
               </ol>
             </div>
 
-            {/* Purchase Button */}
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handlePurchase}
-              disabled={purchasing}
-              className="w-full py-3 bg-gradient-to-r from-[#D85A30] to-[#993C1D] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {purchasing ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                  </svg>
-                  Processing...
-                </span>
-              ) : (
-                '💳 Purchase Recipe - $2.99'
-              )}
-            </motion.button>
+            {/* Action Buttons */}
+            {canEdit ? (
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  href={`/dashboard/edit-recipe/${recipe._id}`}
+                  className="flex-1 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg text-center"
+                >
+                  ✏️ Edit Recipe
+                </Link>
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="flex-1 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-all shadow-lg"
+                >
+                  🗑️ Delete Recipe
+                </button>
+              </div>
+            ) : (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handlePurchase}
+                disabled={purchasing}
+                className="w-full py-3 bg-gradient-to-r from-[#D85A30] to-[#993C1D] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {purchasing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  '💳 Purchase Recipe - $2.99'
+                )}
+              </motion.button>
+            )}
           </div>
         </motion.div>
       </div>
 
-      {/* Report Modal */}
+      {/* ==================== DELETE CONFIRMATION MODAL ==================== */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl"
+            >
+              {/* Icon */}
+              <div className="text-center mb-4">
+                <div className="w-16 h-16 mx-auto bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center text-3xl">
+                  🗑️
+                </div>
+              </div>
+
+              {/* Title */}
+              <h3 className="text-xl font-bold text-center text-gray-800 dark:text-white mb-2">
+                Delete Recipe?
+              </h3>
+
+              {/* Message */}
+              <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+                Are you sure you want to delete{' '}
+                <span className="font-semibold text-gray-800 dark:text-white">
+                  "{recipe?.recipeName}"
+                </span>
+                ?<br />
+                <span className="text-sm text-red-500">This action cannot be undone!</span>
+              </p>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deleting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                      </svg>
+                      Deleting...
+                    </span>
+                  ) : (
+                    'Delete'
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ==================== REPORT MODAL ==================== */}
       {showReportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <motion.div

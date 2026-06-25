@@ -30,11 +30,10 @@ const EyeIcon = ({ open }) => open ? (
   </svg>
 );
 
-// ── Illustration Component (Left Panel) ──────────────────────────────────────
+// ── Illustration Component ──────────────────────────────────────────────────────
 function AuthIllustration() {
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center p-10 overflow-hidden">
-      {/* Background blobs */}
       <motion.div 
         className="absolute w-72 h-72 rounded-full bg-[#F09975] opacity-20 -top-16 -left-16"
         animate={{ y: [0, 18, 0] }} 
@@ -46,14 +45,12 @@ function AuthIllustration() {
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} 
       />
 
-      {/* Central illustration */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
         className="relative z-10 flex flex-col items-center text-center"
       >
-        {/* Plate SVG with food illustration */}
         <motion.svg 
           width="200" height="200" viewBox="0 0 200 200" fill="none"
           animate={{ rotate: [-2, 2, -2], y: [0, -8, 0] }}
@@ -65,16 +62,13 @@ function AuthIllustration() {
           <ellipse cx="100" cy="145" rx="46" ry="11" fill="#FAECE7"/>
           <path d="M68 110 Q100 65 132 110" fill="#F09975" stroke="#D85A30" strokeWidth="2"/>
           <ellipse cx="100" cy="110" rx="20" ry="10" fill="#D85A30"/>
-          {/* Fork */}
           <line x1="38" y1="70" x2="38" y2="150" stroke="#993C1D" strokeWidth="4" strokeLinecap="round"/>
           <line x1="30" y1="70" x2="30" y2="100" stroke="#993C1D" strokeWidth="3" strokeLinecap="round"/>
           <line x1="46" y1="70" x2="46" y2="100" stroke="#993C1D" strokeWidth="3" strokeLinecap="round"/>
           <path d="M30 100 Q38 118 38 124" fill="none" stroke="#993C1D" strokeWidth="3" strokeLinecap="round"/>
           <path d="M46 100 Q38 118 38 124" fill="none" stroke="#993C1D" strokeWidth="3" strokeLinecap="round"/>
-          {/* Knife */}
           <line x1="162" y1="70" x2="162" y2="150" stroke="#993C1D" strokeWidth="4" strokeLinecap="round"/>
           <path d="M162 70 Q175 85 162 105" fill="#D85A30" opacity="0.6"/>
-          {/* Steam */}
           {[85, 100, 115].map((x, i) => (
             <motion.path 
               key={x} 
@@ -104,7 +98,6 @@ function AuthIllustration() {
           Share your favorite recipes and discover the world's best cuisines.
         </motion.p>
 
-        {/* Stats */}
         <motion.div
           className="flex gap-8 mt-8"
           initial={{ opacity: 0, y: 10 }} 
@@ -165,7 +158,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Form validation
   const validate = () => {
     const e = {};
     if (!email) e.email = "Email is required";
@@ -174,7 +166,6 @@ export default function LoginPage() {
     return e;
   };
 
-  // Handle Google Login
   const handleGoogleLogin = async () => {
     try {
       await loginWithGoogle();
@@ -184,7 +175,6 @@ export default function LoginPage() {
     }
   };
 
-  // Handle form submission
   const handleSubmit = async (ev) => {
     ev.preventDefault();
     const e = validate();
@@ -199,7 +189,13 @@ export default function LoginPage() {
     const result = await login({ email, password });
     
     if (result.success) {
-      router.push('/dashboard');
+      // 👇 Role-based redirect
+      const userRole = result.user?.role || 'user';
+      if (userRole === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
     } else {
       setErrors({ general: result.message });
     }
@@ -209,12 +205,10 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Panel - Illustration */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#993C1D] via-[#D85A30] to-[#F09975]">
         <AuthIllustration />
       </div>
 
-      {/* Right Panel - Login Form */}
       <div className="flex-1 flex items-center justify-center px-6 py-12
         bg-[#FAECE7]/30 dark:bg-gray-950">
         <motion.div
@@ -223,7 +217,6 @@ export default function LoginPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.55, ease: [0.22, 0.61, 0.36, 1] }}
         >
-          {/* Brand / Logo */}
           <div className="mb-8">
             <DishDropLogo variant="navbar" />
             <h1 className="mt-5 text-2xl font-bold text-gray-800 dark:text-gray-100">
@@ -237,14 +230,12 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* General Error Message */}
           {errors.general && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
               {errors.general}
             </div>
           )}
 
-          {/* Google Login Button */}
           <button
             onClick={handleGoogleLogin}
             className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl
@@ -258,14 +249,12 @@ export default function LoginPage() {
             Continue with Google
           </button>
 
-          {/* Divider */}
           <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
             <span className="text-xs text-gray-400">or sign in with email</span>
             <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
           </div>
 
-          {/* Login Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <InputField
               label="Email Address"
@@ -300,7 +289,6 @@ export default function LoginPage() {
               }
             />
 
-            {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input 
@@ -315,7 +303,6 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            {/* Submit Button */}
             <motion.button
               type="submit"
               disabled={loading}

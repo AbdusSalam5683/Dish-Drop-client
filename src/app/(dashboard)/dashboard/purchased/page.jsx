@@ -27,12 +27,10 @@ export default function PurchasedPage() {
         if (data.success) {
           setPurchases(data.purchases);
         } else {
-          // If API not implemented yet, show empty state
           setPurchases([]);
         }
       } catch (error) {
         console.error('Error fetching purchases:', error);
-        // Silently fail - show empty state
         setPurchases([]);
       } finally {
         setLoading(false);
@@ -116,70 +114,77 @@ export default function PurchasedPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {purchases.map((purchase, index) => (
-                <motion.tr
-                  key={purchase._id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                >
-                  {/* Recipe */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 relative rounded-lg overflow-hidden flex-shrink-0">
-                        <Image
-                          src={purchase.recipeImage || '/placeholder.jpg'}
-                          alt={purchase.recipeName || 'Recipe'}
-                          fill
-                          className="object-cover"
-                          sizes="48px"
-                        />
+              {purchases.map((purchase, index) => {
+                // 👇 Extract recipe ID properly
+                const recipeId = purchase.recipeId?._id || purchase.recipeId;
+                const recipeImage = purchase.recipeImage || purchase.recipeId?.recipeImage || '/placeholder.jpg';
+                const recipeName = purchase.recipeName || purchase.recipeId?.recipeName || 'Unknown Recipe';
+
+                return (
+                  <motion.tr
+                    key={purchase._id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    {/* Recipe */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 relative rounded-lg overflow-hidden flex-shrink-0">
+                          <Image
+                            src={recipeImage}
+                            alt={recipeName}
+                            fill
+                            className="object-cover"
+                            sizes="48px"
+                          />
+                        </div>
+                        <span className="font-medium text-gray-800 dark:text-white">
+                          {recipeName}
+                        </span>
                       </div>
-                      <span className="font-medium text-gray-800 dark:text-white">
-                        {purchase.recipeName || 'Unknown Recipe'}
+                    </td>
+
+                    {/* Amount */}
+                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
+                      ${purchase.amount?.toFixed(2) || '0.00'}
+                    </td>
+
+                    {/* Date */}
+                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
+                      {purchase.paidAt ? new Date(purchase.paidAt).toLocaleDateString() : 'N/A'}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        purchase.paymentStatus === 'completed' 
+                          ? 'bg-green-100 text-green-700'
+                          : purchase.paymentStatus === 'pending'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        {purchase.paymentStatus || 'completed'}
                       </span>
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* Amount */}
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
-                    ${purchase.amount?.toFixed(2) || '0.00'}
-                  </td>
-
-                  {/* Date */}
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
-                    {purchase.paidAt ? new Date(purchase.paidAt).toLocaleDateString() : 'N/A'}
-                  </td>
-
-                  {/* Status */}
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                      purchase.paymentStatus === 'completed' 
-                        ? 'bg-green-100 text-green-700'
-                        : purchase.paymentStatus === 'pending'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}>
-                      {purchase.paymentStatus || 'completed'}
-                    </span>
-                  </td>
-
-                  {/* Action */}
-                  <td className="px-6 py-4">
-                    {purchase.recipeId ? (
-                      <Link
-                        href={`/recipe/${purchase.recipeId}`}
-                        className="text-sm text-[#D85A30] hover:text-[#993C1D] transition-colors"
-                      >
-                        View Recipe
-                      </Link>
-                    ) : (
-                      <span className="text-sm text-gray-400">Recipe removed</span>
-                    )}
-                  </td>
-                </motion.tr>
-              ))}
+                    {/* Action - FIXED */}
+                    <td className="px-6 py-4">
+                      {recipeId ? (
+                        <Link
+                          href={`/recipe/${recipeId}`}
+                          className="text-sm text-[#D85A30] hover:text-[#993C1D] transition-colors"
+                        >
+                          View Recipe
+                        </Link>
+                      ) : (
+                        <span className="text-sm text-gray-400">Recipe removed</span>
+                      )}
+                    </td>
+                  </motion.tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

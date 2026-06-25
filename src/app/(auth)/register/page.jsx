@@ -187,7 +187,6 @@ export default function RegisterPage() {
     return e;
   };
 
-  // Handle Google Registration
   const handleGoogleRegister = async () => {
     try {
       await loginWithGoogle();
@@ -215,6 +214,7 @@ export default function RegisterPage() {
     });
     
     if (result.success) {
+      // 👇 Role-based redirect (new users are always 'user')
       router.push('/dashboard');
     } else {
       setErrors({ general: result.message });
@@ -250,14 +250,12 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* General Error */}
           {errors.general && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
               {errors.general}
             </div>
           )}
 
-          {/* Google Register Button */}
           <button
             onClick={handleGoogleRegister}
             className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl
