@@ -1,5 +1,7 @@
 "use client";
 
+import { useForm } from "react-hook-form";
+import axiosSecure from "@/lib/axios";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,6 +10,15 @@ import { useAuth } from "@/context/AuthContext";
 import DishDropLogo from "@/components/Logo";
 import toast from "react-hot-toast";
 import Image from "next/image";
+
+const GoogleIcon = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+  </svg>
+);
 
 const EyeIcon = ({ open }) => open ? (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -22,9 +33,9 @@ const EyeIcon = ({ open }) => open ? (
 
 function PasswordStrength({ password }) {
   const checks = [
-    { label: "6+ characters", ok: password.length >= 6 },
-    { label: "Uppercase letter", ok: /[A-Z]/.test(password) },
-    { label: "Lowercase letter", ok: /[a-z]/.test(password) },
+    { label: "6+ characters",      ok: password.length >= 6 },
+    { label: "Uppercase letter",    ok: /[A-Z]/.test(password) },
+    { label: "Lowercase letter",    ok: /[a-z]/.test(password) },
   ];
   const score = checks.filter(c => c.ok).length;
   const colors = ["bg-red-400", "bg-yellow-400", "bg-green-500"];
@@ -146,7 +157,7 @@ function AuthIllustration() {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register: registerUser } = useAuth();  // 👈 loginWithGoogle সরানো হয়েছে
+  const { register: registerUser, loginWithGoogle } = useAuth();
   const [form, setForm] = useState({ 
     name: "", 
     email: "", 
@@ -178,6 +189,7 @@ export default function RegisterPage() {
     return e;
   };
 
+  // ==================== IMAGE UPLOAD ====================
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -204,6 +216,15 @@ export default function RegisterPage() {
       toast.error('Failed to upload image');
     } finally {
       setImageUploading(false);
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      console.error('Google registration error:', error);
+      toast.error('Failed to register with Google');
     }
   };
 
@@ -266,7 +287,25 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* 👇 Google Button সরানো হয়েছে */}
+          {/* Google Register Button */}
+          <button
+            onClick={handleGoogleRegister}
+            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl
+              border border-gray-200 dark:border-gray-700
+              bg-white dark:bg-gray-900
+              text-sm font-medium text-gray-700 dark:text-gray-300
+              hover:bg-gray-50 dark:hover:bg-gray-800
+              transition-all duration-200 shadow-sm hover:shadow mb-5"
+          >
+            <GoogleIcon />
+            Continue with Google
+          </button>
+
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+            <span className="text-xs text-gray-400">or fill out the form</span>
+            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+          </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <InputField label="Full Name" value={form.name} onChange={set("name")}
@@ -275,6 +314,7 @@ export default function RegisterPage() {
             <InputField label="Email" type="email" value={form.email} onChange={set("email")}
               placeholder="your@email.com" error={errors.email} />
 
+            {/* ==================== IMAGE UPLOAD FIELD ==================== */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Profile Image
