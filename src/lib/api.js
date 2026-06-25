@@ -44,7 +44,7 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
 };
 
-// ==================== RECIPE API ====================
+// ================== RECIPE API ==================
 export const recipeAPI = {
   getAll: (params) => api.get('/recipes', { params }),
   getFeatured: () => api.get('/recipes/featured'),
