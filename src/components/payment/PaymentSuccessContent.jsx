@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { motion } from 'motion';
+import { motion } from "motion/react"; // ✅ Correct import for motion package
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
