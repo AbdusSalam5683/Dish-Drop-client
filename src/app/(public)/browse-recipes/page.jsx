@@ -1,14 +1,15 @@
 // dish-drop-client/src/app/(public)/browse-recipes/page.jsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import RecipeCard from '@/components/recipes/RecipeCard';
 import RecipeFilters from '@/components/recipes/RecipeFilters';
 import { recipeAPI } from '@/lib/api';
 
-export default function BrowseRecipesPage() {
+// ==================== MAIN COMPONENT ====================
+function BrowseRecipesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -209,5 +210,21 @@ export default function BrowseRecipesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// ==================== EXPORT WITH SUSPENSE ====================
+export default function BrowseRecipesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[60vh] flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#D85A30] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading recipes...</p>
+        </div>
+      </div>
+    }>
+      <BrowseRecipesContent />
+    </Suspense>
   );
 }
