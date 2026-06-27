@@ -1,7 +1,7 @@
 // dish-drop-client/src/context/AuthContext.jsx
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -10,6 +10,60 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // ==================== FETCH USER FROM TOKEN ====================
+  const fetchUserFromToken = async (token) => {
+    try {
+      api.defaults.headers.Authorization = `Bearer ${token}`;
+      const response = await api.get('/auth/me');
+      
+      if (response.data.success) {
+        const userData = response.data.user;
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+        console.log('✅ User fetched from token:', userData.email);
+        return true;
+      } else {
+        console.error('❌ Failed to fetch user from token');
+        localStorage.removeItem('token');
+        setUser(null);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error fetching user from token:', error);
+      localStorage.removeItem('token');
+      setUser(null);
+      return false;
+    }
+  };
+
+  // ==================== FORCE SYNC AUTH ====================
+  const forceSyncAuth = useCallback(() => {
+    try {
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      
+      console.log('🔄 Force sync - token:', token ? 'exists' : 'null');
+      console.log('🔄 Force sync - user:', storedUser ? 'exists' : 'null');
+      
+      if (token && storedUser && !user) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          api.defaults.headers.Authorization = `Bearer ${token}`;
+          console.log('✅ User force synced:', parsedUser.email);
+          return true;
+        } catch (error) {
+          console.error('❌ Force sync error:', error);
+          return false;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('❌ Force sync error:', error);
+      return false;
+    }
+  }, [user]);
 
   // ==================== SYNC AUTH ====================
   const syncAuth = () => {
@@ -32,7 +86,6 @@ export const AuthProvider = ({ children }) => {
           localStorage.removeItem('user');
         }
       } else if (storedToken && !storedUser) {
-        // 👇 Token exists but user doesn't - fetch user
         console.log('🔄 Token exists but no user, fetching...');
         fetchUserFromToken(storedToken);
       } else {
@@ -46,29 +99,6 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // ==================== FETCH USER FROM TOKEN ====================
-  const fetchUserFromToken = async (token) => {
-    try {
-      api.defaults.headers.Authorization = `Bearer ${token}`;
-      const response = await api.get('/auth/me');
-      
-      if (response.data.success) {
-        const userData = response.data.user;
-        localStorage.setItem('user', JSON.stringify(userData));
-        setUser(userData);
-        console.log('✅ User fetched from token:', userData.email);
-      } else {
-        console.error('❌ Failed to fetch user from token');
-        localStorage.removeItem('token');
-        setUser(null);
-      }
-    } catch (error) {
-      console.error('❌ Error fetching user from token:', error);
-      localStorage.removeItem('token');
-      setUser(null);
     }
   };
 
@@ -146,6 +176,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     loginWithGoogle,
     syncAuth,
+    forceSyncAuth,
+    fetchUserFromToken,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isPremium: user?.isPremium || false,

@@ -7,10 +7,10 @@ import { useAuth } from '@/context/AuthContext';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import api from '@/lib/api'; // ✅ API লাইব্রেরি ব্যবহার করুন
+import api from '@/lib/api';
 
 export default function DashboardContent() {
-  const { user, isAuthenticated, loading, setUser } = useAuth();
+  const { user, isAuthenticated, loading, setUser, forceSyncAuth } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [stats, setStats] = useState({
@@ -46,10 +46,16 @@ export default function DashboardContent() {
             localStorage.setItem('user', JSON.stringify(userData));
             setUser(userData);
             toast.success('Google login successful! 🎉');
-            window.history.replaceState({}, '', '/dashboard');
+            
+            // ✅ Vercel-এ কাজ করার জন্য router.replace ব্যবহার করুন
+            router.replace('/dashboard');
+            
             fetchStats();
             checkPremiumStatus();
             fetchRecentLikes();
+          } else {
+            toast.error('Failed to get user data');
+            localStorage.removeItem('token');
           }
         } catch (error) {
           console.error('❌ Error fetching user:', error);
@@ -62,27 +68,15 @@ export default function DashboardContent() {
       
       fetchUser();
     }
-  }, [searchParams, setUser, isProcessingToken]);
+  }, [searchParams, setUser, isProcessingToken, router]);
 
-  // ==================== FORCE SYNC AUTH ====================
-  const forceSyncAuth = useCallback(() => {
-    const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    console.log('🔄 Force sync - token:', token ? 'exists' : 'null');
-    console.log('🔄 Force sync - user:', storedUser ? 'exists' : 'null');
-    
-    if (token && storedUser && !user) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        api.defaults.headers.Authorization = `Bearer ${token}`;
-        console.log('✅ User force synced:', parsedUser.email);
-      } catch (error) {
-        console.error('❌ Force sync error:', error);
-      }
+  // ==================== FORCE SYNC ON MOUNT ====================
+  useEffect(() => {
+    // ✅ AuthContext-এর forceSyncAuth ব্যবহার করুন
+    if (!user) {
+      forceSyncAuth();
     }
-  }, [user, setUser]);
+  }, [forceSyncAuth, user]);
 
   // ==================== FETCH STATS ====================
   const fetchStats = useCallback(async () => {
@@ -95,7 +89,6 @@ export default function DashboardContent() {
       }
       
       console.log('📤 Fetching stats...');
-      // ✅ API লাইব্রেরি ব্যবহার করুন
       const response = await api.get('/users/stats');
       
       console.log('📥 Stats response:', response.data);
@@ -118,7 +111,6 @@ export default function DashboardContent() {
       const token = localStorage.getItem('token');
       if (!token) return;
       
-      // ✅ API লাইব্রেরি ব্যবহার করুন
       const response = await api.get('/payments/premium-status');
       
       if (response.data.success) {
@@ -139,7 +131,6 @@ export default function DashboardContent() {
         return;
       }
       
-      // ✅ API লাইব্রেরি ব্যবহার করুন
       const response = await api.get('/users/recent-likes');
 
       if (response.data.success) {
@@ -152,11 +143,6 @@ export default function DashboardContent() {
       setLikesLoading(false);
     }
   }, []);
-
-  // ==================== FORCE SYNC ON MOUNT ====================
-  useEffect(() => {
-    forceSyncAuth();
-  }, [forceSyncAuth]);
 
   // ==================== CHECK AUTH STATUS ====================
   useEffect(() => {
@@ -448,7 +434,7 @@ export default function DashboardContent() {
                 transition={{ delay: index * 0.05 }}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
               >
-                {/* Liker Avatar - ✅ FIX: Use img instead of next/image */}
+                {/* Liker Avatar */}
                 <div className="w-10 h-10 rounded-full bg-[#D85A30]/10 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
                   {like.likerImage ? (
                     <img
@@ -485,7 +471,7 @@ export default function DashboardContent() {
                   </p>
                 </div>
 
-                {/* Recipe Thumbnail - ✅ FIX: Use img instead of next/image */}
+                {/* Recipe Thumbnail */}
                 <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700">
                   <img
                     src={like.recipeImage || '/placeholder.jpg'}
