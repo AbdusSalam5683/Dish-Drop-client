@@ -25,6 +25,7 @@ export default function RecipeDetailsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
   // ==================== FETCH RECIPE DETAILS ====================
   useEffect(() => {
@@ -55,7 +56,7 @@ export default function RecipeDetailsPage() {
 
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:5000/api/favorites/${id}/check`, {
+        const response = await fetch(`${API_URL}/favorites/${id}/check`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -82,7 +83,7 @@ export default function RecipeDetailsPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/recipes/${id}/like`, {
+      const response = await fetch(`${API_URL}/recipes/${id}/like`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -113,7 +114,7 @@ export default function RecipeDetailsPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/favorites/${id}`, {
+      const response = await fetch(`${API_URL}/favorites/${id}`, {
         method: isFavorite ? 'DELETE' : 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -143,7 +144,7 @@ export default function RecipeDetailsPage() {
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/reports', {
+      const response = await fetch( `${API_URL}/reports`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -182,7 +183,7 @@ export default function RecipeDetailsPage() {
     setPurchasing(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/payments/create-recipe-checkout/${id}`, {
+      const response = await fetch(`${API_URL}/payments/create-recipe-checkout/${id}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -211,7 +212,7 @@ export default function RecipeDetailsPage() {
       const token = localStorage.getItem('token');
       console.log('🗑️ Deleting recipe:', id);
 
-      const response = await fetch(`http://localhost:5000/api/recipes/${id}`, {
+      const response = await fetch(`${API_URL}/recipes/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
