@@ -1,4 +1,3 @@
-// dish-drop-client/src/app/(auth)/login/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -151,7 +150,7 @@ function InputField({ label, type = "text", value, onChange, placeholder, error,
 // ── Login Page Component ──────────────────────────────────────────────────────
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loginWithGoogle, user, isAuthenticated } = useAuth();
+  const { login, loginWithGoogle, user, isAuthenticated, loading: authLoading } = useAuth();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -159,28 +158,30 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // ✅ লগইন成功后 অটো রিডাইরেক্ট
+  // Auto-redirect if user is already logged in
   useEffect(() => {
-    if (!loading && isAuthenticated && user) {
+    if (!authLoading && isAuthenticated && user) {
       const userRole = user?.role || 'user';
-      console.log('✅ User authenticated, redirecting to:', userRole === 'admin' ? '/admin' : '/dashboard');
+      console.log('✅ Already logged in, redirecting to:', userRole === 'admin' ? '/admin' : '/dashboard');
       
       if (userRole === 'admin') {
-        router.push('/admin');
+        router.replace('/admin');
       } else {
-        router.push('/dashboard');
+        router.replace('/dashboard');
       }
     }
-  }, [isAuthenticated, user, loading, router]);
+  }, [isAuthenticated, user, authLoading, router]);
 
+  // Form validation
   const validate = () => {
-    const e = {};
-    if (!email) e.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = "Please enter a valid email";
-    if (!password) e.password = "Password is required";
-    return e;
+    const errors = {};
+    if (!email) errors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(email)) errors.email = "Please enter a valid email";
+    if (!password) errors.password = "Password is required";
+    return errors;
   };
 
+  // Handle Google login
   const handleGoogleLogin = async () => {
     try {
       await loginWithGoogle();
@@ -190,12 +191,14 @@ export default function LoginPage() {
     }
   };
 
-  const handleSubmit = async (ev) => {
-    ev.preventDefault();
-    const e = validate();
-    if (Object.keys(e).length) { 
-      setErrors(e); 
-      return; 
+  // Handle form submission
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length) {
+      setErrors(validationErrors);
+      return;
     }
     
     setLoading(true);
@@ -204,19 +207,35 @@ export default function LoginPage() {
     const result = await login({ email, password });
     console.log('🔐 Login result:', result);
     
-    if (!result.success) {
+    if (result.success) {
+      // useEffect will handle redirect after state update
+      toast.success('Login successful!');
+    } else {
       setErrors({ general: result.message });
       setLoading(false);
     }
-    // ✅ success হলে useEffect রিডাইরেক্ট করবে
   };
+
+  // Show loading screen while checking auth status
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#D85A30] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
+      {/* Left side - Illustration */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#993C1D] via-[#D85A30] to-[#F09975]">
         <AuthIllustration />
       </div>
 
+      {/* Right side - Login Form */}
       <div className="flex-1 flex items-center justify-center px-6 py-12
         bg-[#FAECE7]/30 dark:bg-gray-950">
         <motion.div
@@ -225,6 +244,7 @@ export default function LoginPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.55, ease: [0.22, 0.61, 0.36, 1] }}
         >
+          {/* Header */}
           <div className="mb-8">
             <DishDropLogo variant="navbar" />
             <h1 className="mt-5 text-2xl font-bold text-gray-800 dark:text-gray-100">
@@ -238,13 +258,14 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {/* General error message */}
           {errors.general && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
               {errors.general}
             </div>
           )}
 
-          {/* ✅ Google Login Button */}
+          {/* Google Login Button */}
           <button
             onClick={handleGoogleLogin}
             className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl
@@ -258,20 +279,22 @@ export default function LoginPage() {
             Continue with Google
           </button>
 
+          {/* Divider */}
           <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
             <span className="text-xs text-gray-400">or sign in with email</span>
             <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
           </div>
 
+          {/* Login Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <InputField
               label="Email Address"
               type="email"
               value={email}
-              onChange={e => { 
-                setEmail(e.target.value); 
-                setErrors(p => ({...p, email: ""})); 
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setErrors((prev) => ({ ...prev, email: "" }));
               }}
               placeholder="your@email.com"
               error={errors.email}
@@ -281,16 +304,16 @@ export default function LoginPage() {
               label="Password"
               type={showPass ? "text" : "password"}
               value={password}
-              onChange={e => { 
-                setPassword(e.target.value); 
-                setErrors(p => ({...p, password: ""})); 
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setErrors((prev) => ({ ...prev, password: "" }));
               }}
               placeholder="••••••••"
               error={errors.password}
               rightEl={
                 <button 
                   type="button" 
-                  onClick={() => setShowPass(v => !v)}
+                  onClick={() => setShowPass((prev) => !prev)}
                   className="text-gray-400 hover:text-[#D85A30] transition-colors"
                 >
                   <EyeIcon open={showPass} />
@@ -298,6 +321,7 @@ export default function LoginPage() {
               }
             />
 
+            {/* Remember me & Forgot password */}
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input 
@@ -312,6 +336,7 @@ export default function LoginPage() {
               </Link>
             </div>
 
+            {/* Submit button */}
             <motion.button
               type="submit"
               disabled={loading}
@@ -328,7 +353,9 @@ export default function LoginPage() {
                   </svg>
                   Signing in...
                 </span>
-              ) : "Sign In"}
+              ) : (
+                "Sign In"
+              )}
             </motion.button>
           </form>
         </motion.div>
