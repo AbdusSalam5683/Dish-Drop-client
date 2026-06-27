@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
@@ -150,13 +150,27 @@ function InputField({ label, type = "text", value, onChange, placeholder, error,
 // ── Login Page Component ──────────────────────────────────────────────────────
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loginWithGoogle } = useAuth();
+  const { login, loginWithGoogle, user, isAuthenticated } = useAuth();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // ✅ লগইন成功后 অটো রিডাইরেক্ট
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const userRole = user?.role || 'user';
+      console.log('✅ User authenticated, redirecting to:', userRole === 'admin' ? '/admin' : '/dashboard');
+      
+      if (userRole === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
+    }
+  }, [isAuthenticated, user, router]);
 
   const validate = () => {
     const e = {};
@@ -187,20 +201,27 @@ export default function LoginPage() {
     setErrors({});
     
     const result = await login({ email, password });
+    console.log('🔐 Login result:', result);
     
-    if (result.success) {
-      const userRole = result.user?.role || 'user';
-      if (userRole === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/dashboard');
-      }
-    } else {
+    if (!result.success) {
       setErrors({ general: result.message });
+      setLoading(false);
     }
-    
-    setLoading(false);
+    // ✅ success হলে useEffect রিডাইরেক্ট করবে
+    // তাই এখানে loading false করার দরকার নেই
   };
+
+  // ✅ লোডিং স্টেট দেখান
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#D85A30] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Signing in...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
