@@ -1,3 +1,4 @@
+// dish-drop-client/src/app/(auth)/login/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -160,7 +161,7 @@ export default function LoginPage() {
 
   // ✅ লগইন成功后 অটো রিডাইরেক্ট
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (!loading && isAuthenticated && user) {
       const userRole = user?.role || 'user';
       console.log('✅ User authenticated, redirecting to:', userRole === 'admin' ? '/admin' : '/dashboard');
       
@@ -170,7 +171,7 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, loading, router]);
 
   const validate = () => {
     const e = {};
@@ -208,20 +209,7 @@ export default function LoginPage() {
       setLoading(false);
     }
     // ✅ success হলে useEffect রিডাইরেক্ট করবে
-    // তাই এখানে loading false করার দরকার নেই
   };
-
-  // ✅ লোডিং স্টেট দেখান
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#D85A30] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Signing in...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex">
