@@ -1,3 +1,4 @@
+// dish-drop-client/src/app/(dashboard)/dashboard/DashboardContent.jsx
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -5,9 +6,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'motion/react';
 import Link from 'next/link';
-import Image from 'next/image';
 import toast from 'react-hot-toast';
-import api from '@/lib/api';
+import api from '@/lib/api'; // ✅ API লাইব্রেরি ব্যবহার করুন
 
 export default function DashboardContent() {
   const { user, isAuthenticated, loading, setUser } = useAuth();
@@ -90,29 +90,23 @@ export default function DashboardContent() {
       const token = localStorage.getItem('token');
       if (!token) {
         console.log('❌ No token found');
+        setStatsLoading(false);
         return;
       }
       
       console.log('📤 Fetching stats...');
-      const response = await fetch('http://localhost:5000/api/users/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('📥 Stats response:', data);
+      // ✅ API লাইব্রেরি ব্যবহার করুন
+      const response = await api.get('/users/stats');
       
-      if (data.success) {
-        setStats(data.stats);
-        console.log('✅ Stats loaded:', data.stats);
+      console.log('📥 Stats response:', response.data);
+      
+      if (response.data.success) {
+        setStats(response.data.stats);
+        console.log('✅ Stats loaded:', response.data.stats);
       }
     } catch (error) {
       console.error('❌ Error fetching stats:', error);
+      toast.error('Failed to load stats');
     } finally {
       setStatsLoading(false);
     }
@@ -124,15 +118,12 @@ export default function DashboardContent() {
       const token = localStorage.getItem('token');
       if (!token) return;
       
-      const response = await fetch('http://localhost:5000/api/payments/premium-status', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setIsPremium(data.isPremium);
-        console.log('⭐ Premium status:', data.isPremium);
+      // ✅ API লাইব্রেরি ব্যবহার করুন
+      const response = await api.get('/payments/premium-status');
+      
+      if (response.data.success) {
+        setIsPremium(response.data.isPremium);
+        console.log('⭐ Premium status:', response.data.isPremium);
       }
     } catch (error) {
       console.error('Error checking premium:', error);
@@ -143,18 +134,17 @@ export default function DashboardContent() {
   const fetchRecentLikes = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        setLikesLoading(false);
+        return;
+      }
       
-      const response = await fetch('http://localhost:5000/api/users/recent-likes', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      // ✅ API লাইব্রেরি ব্যবহার করুন
+      const response = await api.get('/users/recent-likes');
 
-      const data = await response.json();
-      if (data.success) {
-        setRecentLikes(data.likes);
-        console.log('❤️ Recent likes loaded:', data.likes.length);
+      if (response.data.success) {
+        setRecentLikes(response.data.likes);
+        console.log('❤️ Recent likes loaded:', response.data.likes.length);
       }
     } catch (error) {
       console.error('Error fetching recent likes:', error);
@@ -458,15 +448,20 @@ export default function DashboardContent() {
                 transition={{ delay: index * 0.05 }}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
               >
-                {/* Liker Avatar */}
+                {/* Liker Avatar - ✅ FIX: Use img instead of next/image */}
                 <div className="w-10 h-10 rounded-full bg-[#D85A30]/10 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
                   {like.likerImage ? (
-                    <Image
+                    <img
                       src={like.likerImage}
                       alt={like.likerName}
-                      width={40}
-                      height={40}
-                      className="object-cover"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        if (e.target.parentElement) {
+                          e.target.parentElement.innerHTML = `<span>${like.likerName?.[0] || '👤'}</span>`;
+                        }
+                      }}
                     />
                   ) : (
                     <span>{like.likerName?.[0] || '👤'}</span>
@@ -490,14 +485,16 @@ export default function DashboardContent() {
                   </p>
                 </div>
 
-                {/* Recipe Thumbnail */}
-                <div className="w-12 h-12 relative rounded-lg overflow-hidden flex-shrink-0">
-                  <Image
-                    src={like.recipeImage}
+                {/* Recipe Thumbnail - ✅ FIX: Use img instead of next/image */}
+                <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700">
+                  <img
+                    src={like.recipeImage || '/placeholder.jpg'}
                     alt={like.recipeName}
-                    fill
-                    className="object-cover"
-                    sizes="48px"
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      e.target.src = '/placeholder.jpg';
+                    }}
                   />
                 </div>
               </motion.div>
