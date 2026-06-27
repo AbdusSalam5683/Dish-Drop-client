@@ -1,3 +1,4 @@
+// dish-drop-client/src/app/(auth)/login/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -158,17 +159,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Auto-redirect if user is already logged in
+  // 🔒 Redirect authenticated users away from login page
   useEffect(() => {
+    // Only redirect after auth loading is complete
     if (!authLoading && isAuthenticated && user) {
-      const userRole = user?.role || 'user';
-      console.log('✅ Already logged in, redirecting to:', userRole === 'admin' ? '/admin' : '/dashboard');
+      const redirectPath = user?.role === 'admin' ? '/admin' : '/dashboard';
+      console.log(`🔒 Auth guard: User already logged in, redirecting to: ${redirectPath}`);
       
-      if (userRole === 'admin') {
-        router.replace('/admin');
-      } else {
-        router.replace('/dashboard');
-      }
+      // Use replace to prevent back button to login page
+      router.replace(redirectPath);
     }
   }, [isAuthenticated, user, authLoading, router]);
 
@@ -208,7 +207,7 @@ export default function LoginPage() {
     console.log('🔐 Login result:', result);
     
     if (result.success) {
-      // useEffect will handle redirect after state update
+      // The useEffect above will handle redirect after state update
       toast.success('Login successful!');
     } else {
       setErrors({ general: result.message });
@@ -226,6 +225,12 @@ export default function LoginPage() {
         </div>
       </div>
     );
+  }
+
+  // 👇 If user is authenticated, don't render login form
+  // (Although useEffect will redirect, this prevents any flash)
+  if (isAuthenticated && user) {
+    return null;
   }
 
   return (
