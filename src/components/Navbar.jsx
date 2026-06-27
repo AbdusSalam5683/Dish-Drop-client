@@ -1,3 +1,4 @@
+// dish-drop-client/src/components/common/Navbar.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -111,7 +112,7 @@ function ThemeToggle() {
 // ── Main Navbar Component ────────────────────────────────────────────────────
 export default function Navbar() {
   const router = useRouter();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, loading } = useAuth(); // ✅ loading যোগ করা হয়েছে
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -129,20 +130,41 @@ export default function Navbar() {
     toast.success('Logged out successfully');
   };
 
-  // 👇 Role-based dashboard link
+  // 👇 Dashboard link based on role
   const getDashboardLink = () => {
-    if (!isAuthenticated) return null;
+    if (!isAuthenticated || !user) return null;
     return user?.role === 'admin' ? '/admin' : '/dashboard';
   };
 
-  // 👇 Role-based profile link
+  // 👇 Profile link based on role
   const getProfileLink = () => {
-    if (!isAuthenticated) return null;
+    if (!isAuthenticated || !user) return null;
     return user?.role === 'admin' ? '/admin/profile' : '/dashboard/profile';
   };
 
   const dashboardLink = getDashboardLink();
   const profileLink = getProfileLink();
+
+  // ✅ ডিবাগ করার জন্য
+  console.log('🔍 Navbar - isAuthenticated:', isAuthenticated);
+  console.log('🔍 Navbar - user:', user);
+  console.log('🔍 Navbar - dashboardLink:', dashboardLink);
+
+  // Loading state
+  if (loading) {
+    return (
+      <header className="fixed top-0 inset-x-0 z-50 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md shadow-sm border-b border-[#D85A30]/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Link href="/" className="flex-shrink-0">
+              <DishDropLogo variant="navbar" />
+            </Link>
+            <div className="w-8 h-8 border-2 border-[#D85A30] border-t-transparent rounded-full animate-spin" />
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <>
@@ -328,7 +350,7 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* ── Spacer to prevent content from hiding behind fixed navbar- ── */}
+      {/* ── Spacer to prevent content from hiding behind fixed navbar ── */}
       <div className="h-16" />
     </>
   );
